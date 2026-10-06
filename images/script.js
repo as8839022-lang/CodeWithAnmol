@@ -1,861 +1,102 @@
-/* =========================================================
-   CODE WITH ANMOL
-   Browser Arduino connection using Web Serial API
-   ========================================================= */
-
-const ACCESS_PHRASE = "CODE WITH ANMOL";
-
-const projects = [
-  {
-    title: "Servo Gate + 1 Ultrasonic",
-    category: "Gate",
-    parts: "Arduino Uno, Servo SG90, HC-SR04",
-    description: "Open a small gate when a person or vehicle comes close.",
-    code: `#include <Servo.h>
-
-Servo gate;
-const int trigPin = 10;
-const int echoPin = 11;
-
-long getDistance() {
-  digitalWrite(trigPin, LOW);
-  delayMicroseconds(2);
-  digitalWrite(trigPin, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trigPin, LOW);
-
-  long t = pulseIn(echoPin, HIGH, 30000);
-  if (t == 0) return -1;
-  return t * 0.0343 / 2;
-}
-
-void setup() {
-  gate.attach(9);
-  pinMode(trigPin, OUTPUT);
-  pinMode(echoPin, INPUT);
-  gate.write(0);
-  Serial.begin(9600);
-}
-
-void loop() {
-  long d = getDistance();
-  Serial.println(d);
-
-  if (d > 0 && d < 20) {
-    gate.write(90);
-    delay(3000);
-    gate.write(0);
-  }
-
-  delay(100);
-}`
-  },
-  {
-    title: "Servo Gate + 2 Ultrasonic",
-    category: "Gate",
-    parts: "Arduino Uno, Servo, 2× HC-SR04",
-    description: "Detect a vehicle from either side and open the gate.",
-    code: `#include <Servo.h>
-
-Servo gate;
-
-const int trig1 = 10;
-const int echo1 = 11;
-const int trig2 = 8;
-const int echo2 = 12;
-
-long distanceCM(int trigPin, int echoPin) {
-  digitalWrite(trigPin, LOW);
-  delayMicroseconds(2);
-  digitalWrite(trigPin, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trigPin, LOW);
-
-  long t = pulseIn(echoPin, HIGH, 30000);
-  if (t == 0) return -1;
-  return t * 0.0343 / 2;
-}
-
-void setup() {
-  gate.attach(9);
-
-  pinMode(trig1, OUTPUT);
-  pinMode(echo1, INPUT);
-  pinMode(trig2, OUTPUT);
-  pinMode(echo2, INPUT);
-
-  gate.write(0);
-  Serial.begin(9600);
-}
-
-void loop() {
-  long left = distanceCM(trig1, echo1);
-  long right = distanceCM(trig2, echo2);
-
-  if ((left > 0 && left < 20) || (right > 0 && right < 20)) {
-    gate.write(90);
-    Serial.println("GATE OPEN");
-    delay(3000);
-    gate.write(0);
-    Serial.println("GATE CLOSED");
-  }
-
-  delay(100);
-}`
-  },
-  {
-    title: "Ultrasonic Distance Meter",
-    category: "Sensor",
-    parts: "Arduino Uno, HC-SR04",
-    description: "Show live distance values in the browser serial monitor.",
-    code: `const int trigPin = 10;
-const int echoPin = 11;
-
-void setup() {
-  pinMode(trigPin, OUTPUT);
-  pinMode(echoPin, INPUT);
-  Serial.begin(9600);
-}
-
-void loop() {
-  digitalWrite(trigPin, LOW);
-  delayMicroseconds(2);
-  digitalWrite(trigPin, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trigPin, LOW);
-
-  long t = pulseIn(echoPin, HIGH, 30000);
-  long d = (t == 0) ? -1 : t * 0.0343 / 2;
-
-  Serial.print("Distance: ");
-  Serial.print(d);
-  Serial.println(" cm");
-
-  delay(300);
-}`
-  },
-  {
-    title: "Automatic Street Light",
-    category: "LED",
-    parts: "Arduino Uno, LDR, LED, 220Ω resistor",
-    description: "Switch an LED on when the environment becomes dark.",
-    code: `const int ldrPin = A0;
-const int ledPin = 8;
-
-void setup() {
-  pinMode(ledPin, OUTPUT);
-  Serial.begin(9600);
-}
-
-void loop() {
-  int value = analogRead(ldrPin);
-  Serial.println(value);
-
-  if (value < 500) {
-    digitalWrite(ledPin, HIGH);
-  } else {
-    digitalWrite(ledPin, LOW);
-  }
-
-  delay(150);
-}`
-  },
-  {
-    title: "Rain Detector",
-    category: "Sensor",
-    parts: "Arduino Uno, raindrop sensor, buzzer",
-    description: "Detect rain and send a message through Serial.",
-    code: `const int rainPin = A0;
-const int buzzerPin = 8;
-
-void setup() {
-  pinMode(buzzerPin, OUTPUT);
-  Serial.begin(9600);
-}
-
-void loop() {
-  int value = analogRead(rainPin);
-
-  if (value < 500) {
-    digitalWrite(buzzerPin, HIGH);
-    Serial.println("RAIN DETECTED");
-  } else {
-    digitalWrite(buzzerPin, LOW);
-    Serial.println("NO RAIN");
-  }
-
-  delay(500);
-}`
-  },
-  {
-    title: "Touch Sensor LED",
-    category: "Sensor",
-    parts: "Arduino Uno, TTP223 touch sensor, LED",
-    description: "Turn an LED on when the touch sensor is pressed.",
-    code: `const int touchPin = 2;
-const int ledPin = 8;
-
-void setup() {
-  pinMode(touchPin, INPUT);
-  pinMode(ledPin, OUTPUT);
-  Serial.begin(9600);
-}
-
-void loop() {
-  int touched = digitalRead(touchPin);
-
-  digitalWrite(ledPin, touched);
-
-  Serial.println(touched ? "TOUCHED" : "NOT TOUCHED");
-  delay(80);
-}`
-  },
-  {
-    title: "Traffic Light",
-    category: "LED",
-    parts: "Arduino Uno, red/yellow/green LEDs",
-    description: "A beginner traffic light sequence.",
-    code: `const int redPin = 8;
-const int yellowPin = 9;
-const int greenPin = 10;
-
-void setup() {
-  pinMode(redPin, OUTPUT);
-  pinMode(yellowPin, OUTPUT);
-  pinMode(greenPin, OUTPUT);
-}
-
-void loop() {
-  digitalWrite(redPin, HIGH);
-  delay(3000);
-  digitalWrite(redPin, LOW);
-
-  digitalWrite(yellowPin, HIGH);
-  delay(1000);
-  digitalWrite(yellowPin, LOW);
-
-  digitalWrite(greenPin, HIGH);
-  delay(3000);
-  digitalWrite(greenPin, LOW);
-}`
-  },
-  {
-    title: "PIR Motion Alarm",
-    category: "Security",
-    parts: "Arduino Uno, PIR sensor, buzzer",
-    description: "Detect motion and sound a simple alarm.",
-    code: `const int pirPin = 2;
-const int buzzerPin = 8;
-
-void setup() {
-  pinMode(pirPin, INPUT);
-  pinMode(buzzerPin, OUTPUT);
-  Serial.begin(9600);
-}
-
-void loop() {
-  if (digitalRead(pirPin)) {
-    digitalWrite(buzzerPin, HIGH);
-    Serial.println("MOTION DETECTED");
-  } else {
-    digitalWrite(buzzerPin, LOW);
-    Serial.println("SAFE");
-  }
-
-  delay(150);
-}`
-  },
-  {
-    title: "Servo Sweep",
-    category: "Motor",
-    parts: "Arduino Uno, SG90 servo",
-    description: "Move a servo smoothly from 0 to 180 degrees and back.",
-    code: `#include <Servo.h>
-
-Servo myServo;
-
-void setup() {
-  myServo.attach(9);
-}
-
-void loop() {
-  for (int angle = 0; angle <= 180; angle++) {
-    myServo.write(angle);
-    delay(10);
-  }
-
-  for (int angle = 180; angle >= 0; angle--) {
-    myServo.write(angle);
-    delay(10);
-  }
-}`
-  },
-  {
-    title: "LED Chaser",
-    category: "LED",
-    parts: "Arduino Uno, 6 LEDs, 220Ω resistors",
-    description: "Create a running LED light effect.",
-    code: `const int leds[] = {3, 4, 5, 6, 7, 8};
-const int count = 6;
-
-void setup() {
-  for (int i = 0; i < count; i++) {
-    pinMode(leds[i], OUTPUT);
-  }
-}
-
-void loop() {
-  for (int i = 0; i < count; i++) {
-    digitalWrite(leds[i], HIGH);
-    delay(120);
-    digitalWrite(leds[i], LOW);
-  }
-}`
-  }
-];
-
-const extraProjectNames = [
-  "Automatic Door","Smart Parking Gate","Servo Barrier","Parking Sensor",
-  "Ultrasonic Alarm","Obstacle Detector","Mini Radar","Distance Warning",
-  "Water Level Alarm","Gas Sensor Alarm","Smoke Detector","Temperature Monitor",
-  "Temperature Fan Control","Light Sensor","Darkness Detector","Touch Doorbell",
-  "Rain LED Indicator","Fire Alarm","Flame Detector","IR Object Detector",
-  "IR Counter","IR Remote LED","IR Security Alarm","PIR Security Alarm",
-  "Automatic Room Light","Automatic Fan","Smart Home Light","Smart Home Fan",
-  "LED Dimmer","LED Blinking","Running LEDs","Knight Rider LEDs","14 LED Chaser",
-  "15 LED Chaser","RGB LED","RGB Mood Light","RGB Color Mixer",
-  "Traffic Light 4 Way","Railway Crossing","Railway Signal","Police Light",
-  "Emergency Flasher","Buzzer Alarm","Digital Doorbell","Music Buzzer",
-  "Melody Generator","Ultrasonic Buzzer","Servo + Button","Servo + Potentiometer",
-  "Servo + Joystick","Servo + Touch Sensor","Servo + IR Sensor","DC Motor Control",
-  "DC Motor Speed Control","L298N Motor Control","L298N Robot","2 Motor Robot",
-  "4 Motor Robot","Bluetooth Robot","Obstacle Avoiding Robot","Line Following Robot",
-  "Mini Car","Smart Car","Remote Car","Robot Arm","Servo Robot Arm",
-  "LCD 16x2 Display","LCD Sensor Display","LCD Distance Meter","LCD Temperature Meter",
-  "LCD Rain Display","LCD Password Lock","OLED Display","OLED Sensor Monitor",
-  "7 Segment Display","Digital Counter","Up Counter","Down Counter","Reaction Timer",
-  "Stopwatch","Digital Dice","Electronic Dice","Password Door Lock","Keypad Lock",
-  "Keypad Safe","RFID Door Lock","RFID Attendance","RFID Security","Bluetooth Lock",
-  "Bluetooth LED Control","Bluetooth Home Automation","Mini Weather Station",
-  "Temperature Humidity Monitor","Automatic Plant Watering","Soil Moisture Detector",
-  "Plant Watering Alarm","Water Pump Controller","Water Tank Controller",
-  "Gas Leakage Alarm","Fire Fighting Robot","Mini Fan Controller","Smart Dustbin",
-  "Automatic Dustbin","Touchless Dustbin","Smart Parking System","Parking Slot Counter",
-  "People Counter","Visitor Counter","Object Counter","Digital Thermometer",
-  "Battery Voltage Monitor","Battery Low Alarm","Voltage Indicator",
-  "Potentiometer LED","Joystick Servo","Joystick Robot","Joystick Motor Control",
-  "Bluetooth Servo","Bluetooth Car","RF Remote Control","RF LED Control",
-  "Laser Security Alarm","Door Open Alarm","Window Security Alarm","Vibration Alarm",
-  "Earthquake Detector","Sound Sensor LED","Clap Switch","Clap Light",
-  "Microphone LED","Mini Piano","Arduino Piano","Simon Says Game","Memory Game",
-  "Reaction Game","LED Game","Random LED","Random Number Generator","Digital Clock",
-  "Alarm Clock","Mini Timer","Countdown Timer","Pomodoro Timer","Automatic Curtain",
-  "Automatic Fan Regulator","Smart Room","Home Security System","Multi Sensor Alarm",
-  "Arduino Dashboard","Servo Lock","Mini Conveyor","IR Line Counter","Parking Barrier",
-  "Temperature Warning","Humidity Warning","Water Pump Auto Switch","Smart Locker",
-  "Door Bell with LED","Night Lamp","Dual LED Flasher","Triple LED Flasher"
-];
-
-const extraProjects = extraProjectNames.map((name, i) => ({
-  title: name,
-  category: classify(name),
-  parts: "Arduino Uno + suitable sensor/module/actuator for this project",
-  description: "Beginner project idea. Open this card to see the starter sketch and project category.",
-  code:
-`// ${name}
-// Starter template for CODE WITH ANMOL
-
-void setup() {
-  Serial.begin(9600);
-  Serial.println("${name}");
-}
-
-void loop() {
-  // Add your project logic here.
-  delay(1000);
-}`
-}));
-
-const allProjects = [...projects, ...extraProjects];
-
-/* ---------- DOM ---------- */
-
-const introScreen = document.getElementById("introScreen");
-const app = document.getElementById("app");
-const accessCode = document.getElementById("accessCode");
-const accessMessage = document.getElementById("accessMessage");
-const projectGrid = document.getElementById("projectGrid");
-const searchInput = document.getElementById("searchInput");
-const toast = document.getElementById("toast");
-
-const projectModal = document.getElementById("projectModal");
-const modalBody = document.getElementById("modalBody");
-
-const topStatus = document.getElementById("topStatus");
-const connectionState = document.getElementById("connectionState");
-const deviceCount = document.getElementById("deviceCount");
-const deviceName = document.getElementById("deviceName");
-const deviceDetails = document.getElementById("deviceDetails");
-const deviceBadge = document.getElementById("deviceBadge");
-const serialOutput = document.getElementById("serialOutput");
-const baudRate = document.getElementById("baudRate");
-const friendlyName = document.getElementById("friendlyName");
-const serialInput = document.getElementById("serialInput");
-const sendSerialBtn = document.getElementById("sendSerialBtn");
-const disconnectBtn = document.getElementById("disconnectBtn");
-
-let port = null;
-let reader = null;
-let writer = null;
-let keepReading = false;
-
-/* ---------- Startup ---------- */
-
-document.getElementById("projectCount").textContent = allProjects.length;
-
-if (!("serial" in navigator)) {
-  document.getElementById("dashboardConnectBtn").disabled = true;
-  document.getElementById("connectBtn").disabled = true;
-  showToast("Web Serial is not supported in this browser. Try Chrome or Edge on desktop.");
-}
-
-renderProjects(allProjects);
-
-/* ---------- Intro ---------- */
-
-document.getElementById("enterSiteBtn").addEventListener("click", enterWithCode);
-
-accessCode.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") enterWithCode();
-});
-
-function enterWithCode() {
-  const value = accessCode.value.trim().toUpperCase();
-
-  if (value === ACCESS_PHRASE) {
-    introScreen.classList.add("hidden");
-    app.classList.remove("hidden");
-    accessMessage.textContent = "";
-    showToast("Welcome to CODE WITH ANMOL ⚡");
-  } else {
-    accessMessage.textContent = "Wrong code. Enter CODE WITH ANMOL.";
-  }
-}
-
-/* ---------- Navigation ---------- */
-
-document.querySelectorAll(".nav-item").forEach(button => {
-  button.addEventListener("click", () => {
-    activateSection(button.dataset.section);
-    document.querySelectorAll(".nav-item").forEach(item => item.classList.remove("active"));
-    button.classList.add("active");
-  });
-});
-
-document.querySelectorAll("[data-go='projects']").forEach(button => {
-  button.addEventListener("click", () => activateSection("projects"));
-});
-
-function activateSection(id) {
-  document.querySelectorAll(".section").forEach(section => {
-    section.classList.remove("active-section");
-  });
-
-  const target = document.getElementById(id);
-  if (target) target.classList.add("active-section");
-
-  if (id === "projects") {
-    renderProjects(allProjects);
-  }
-}
-
-/* ---------- Projects ---------- */
-
-searchInput.addEventListener("input", () => {
-  const q = searchInput.value.trim().toLowerCase();
-
-  const filtered = allProjects.filter(project =>
-    project.title.toLowerCase().includes(q) ||
-    project.category.toLowerCase().includes(q) ||
-    project.description.toLowerCase().includes(q)
-  );
-
-  renderProjects(filtered);
-});
-
-function renderProjects(list) {
-  projectGrid.innerHTML = "";
-
-  if (!list.length) {
-    projectGrid.innerHTML = `
-      <div class="info-card">
-        <h3>No project found</h3>
-        <p>Try another search word.</p>
-      </div>
-    `;
-    return;
-  }
-
-  list.forEach((project, index) => {
-    const originalIndex = allProjects.indexOf(project) + 1;
-
-    const card = document.createElement("article");
-    card.className = "project-card";
-
-    card.innerHTML = `
-      <div class="project-number">PROJECT ${String(originalIndex).padStart(3, "0")}</div>
-      <h3>${escapeHtml(project.title)}</h3>
-      <p>${escapeHtml(project.description)}</p>
-
-      <div class="project-meta">
-        <span>${escapeHtml(project.category)}</span>
-        <span>Arduino Uno</span>
-      </div>
-
-      <button class="primary-btn project-open">Open Code</button>
-    `;
-
-    card.querySelector(".project-open").addEventListener("click", () => {
-      openProject(project);
-    });
-
-    projectGrid.appendChild(card);
-  });
-}
-
-function openProject(project) {
-  modalBody.innerHTML = `
-    <div class="tiny-label">${escapeHtml(project.category)}</div>
-    <h2>${escapeHtml(project.title)}</h2>
-    <p>${escapeHtml(project.description)}</p>
-
-    <div class="info-card" style="margin-top:14px; box-shadow:none;">
-      <strong>🧩 Components</strong>
-      <p style="margin-top:7px;">${escapeHtml(project.parts)}</p>
-    </div>
-
-    <div class="code-block">
-      <pre>${escapeHtml(project.code)}</pre>
-    </div>
-
-    <div class="modal-actions">
-      <button id="copyCodeBtn" class="primary-btn">📋 Copy Code</button>
-      <button id="closeModalBtn2" class="secondary-btn">Close</button>
-    </div>
-  `;
-
-  projectModal.classList.remove("hidden");
-
-  document.getElementById("copyCodeBtn").addEventListener("click", async () => {
-    try {
-      await navigator.clipboard.writeText(project.code);
-      showToast("Arduino code copied.");
-    } catch {
-      showToast("Copy failed. Select the code manually.");
+const P=[{"title": "Servo Gate + 1 Ultrasonic", "cat": "Gate", "icon": "🚧", "desc": "Automatic gate opens when a vehicle comes within 30 cm.", "components": ["Arduino Uno", "SG90 Servo", "HC-SR04", "Jumper wires"], "wiring": ["HC-SR04 VCC → 5V", "HC-SR04 GND → GND", "TRIG → D10", "ECHO → D11", "Servo signal → D9", "Servo VCC → 5V/external 5V", "Servo GND → GND"], "code": "#include <Servo.h>\nServo gate;\nconst byte TRIG=10,ECHO=11;\nlong distanceCM(){\n  digitalWrite(TRIG,LOW); delayMicroseconds(2);\n  digitalWrite(TRIG,HIGH); delayMicroseconds(10); digitalWrite(TRIG,LOW);\n  long us=pulseIn(ECHO,HIGH,30000); return us ? us*0.0343/2 : 999;\n}\nvoid setup(){ pinMode(TRIG,OUTPUT); pinMode(ECHO,INPUT); gate.attach(9); gate.write(0); }\nvoid loop(){ long d=distanceCM(); if(d<30){gate.write(90); delay(1500);} else gate.write(0); delay(100); }", "boards": "Uno, Nano, Mega", "libs": "Servo"}, {"title": "Servo Gate + 2 Ultrasonic", "cat": "Gate", "icon": "🚪", "desc": "Two sensors can open the same gate from either side.", "components": ["Arduino Uno", "SG90 Servo", "2 × HC-SR04"], "wiring": ["Sensor A VCC/GND → 5V/GND", "A TRIG → D10", "A ECHO → D11", "B TRIG → D8", "B ECHO → D12", "Servo signal → D9", "Servo GND → GND"], "code": "#include <Servo.h>\nServo gate;\nlong cm(byte t,byte e){digitalWrite(t,LOW);delayMicroseconds(2);digitalWrite(t,HIGH);delayMicroseconds(10);digitalWrite(t,LOW);long u=pulseIn(e,HIGH,30000);return u?u*.0343/2:999;}\nvoid setup(){pinMode(10,OUTPUT);pinMode(11,INPUT);pinMode(8,OUTPUT);pinMode(12,INPUT);gate.attach(9);gate.write(0);}\nvoid loop(){if(cm(10,11)<30||cm(8,12)<30){gate.write(90);delay(1500);}else gate.write(0);delay(100);}", "boards": "Uno, Nano, Mega", "libs": "Servo"}, {"title": "Automatic Street Light", "cat": "LED", "icon": "💡", "desc": "Turns an LED on when the room becomes dark.", "components": ["Arduino Uno", "LDR", "10kΩ resistor", "LED", "220Ω resistor"], "wiring": ["LDR → 5V and A0", "10kΩ: A0 → GND", "LED anode → D9 through 220Ω", "LED cathode → GND"], "code": "const byte LDR=A0,LED=9;\nvoid setup(){pinMode(LED,OUTPUT);Serial.begin(9600);}\nvoid loop(){int light=analogRead(LDR);Serial.println(light);digitalWrite(LED,light<500);delay(200);}", "boards": "Uno, Nano, Mega", "libs": ""}, {"title": "Rain Detector + Buzzer", "cat": "Sensor", "icon": "🌧️", "desc": "Sounds an alarm when the rain sensor gets wet.", "components": ["Arduino Uno", "Rain sensor module", "Buzzer", "LED", "220Ω resistor"], "wiring": ["Rain VCC → 5V", "Rain GND → GND", "Rain AO → A0", "Buzzer + → D8", "Buzzer − → GND", "LED anode → D9 via 220Ω", "LED cathode → GND"], "code": "const byte RAIN=A0,BUZZER=8,LED=9;\nvoid setup(){pinMode(BUZZER,OUTPUT);pinMode(LED,OUTPUT);Serial.begin(9600);}\nvoid loop(){int v=analogRead(RAIN);bool wet=v<600;digitalWrite(LED,wet);if(wet)tone(BUZZER,1200);else noTone(BUZZER);Serial.println(v);delay(200);}", "boards": "Uno, Nano, Mega", "libs": ""}, {"title": "Ultrasonic Distance Meter", "cat": "Sensor", "icon": "📏", "desc": "Prints distance in centimeters to the Serial Monitor.", "components": ["Arduino Uno", "HC-SR04"], "wiring": ["VCC → 5V", "GND → GND", "TRIG → D10", "ECHO → D11"], "code": "const byte T=10,E=11;\nvoid setup(){pinMode(T,OUTPUT);pinMode(E,INPUT);Serial.begin(9600);}\nvoid loop(){digitalWrite(T,LOW);delayMicroseconds(2);digitalWrite(T,HIGH);delayMicroseconds(10);digitalWrite(T,LOW);long u=pulseIn(E,HIGH,30000);float cm=u?u*.0343/2:-1;Serial.print(\"Distance: \");Serial.print(cm);Serial.println(\" cm\");delay(300);}", "boards": "Uno, Nano, Mega", "libs": ""}, {"title": "Traffic Light", "cat": "LED", "icon": "🚦", "desc": "Three LEDs run a simple traffic-light sequence.", "components": ["Arduino Uno", "Red LED", "Yellow LED", "Green LED", "3 × 220Ω"], "wiring": ["Red anode → D8 via 220Ω", "Yellow anode → D9 via 220Ω", "Green anode → D10 via 220Ω", "All cathodes → GND"], "code": "const byte R=8,Y=9,G=10;\nvoid setup(){pinMode(R,OUTPUT);pinMode(Y,OUTPUT);pinMode(G,OUTPUT);}\nvoid loop(){digitalWrite(G,HIGH);delay(5000);digitalWrite(G,LOW);digitalWrite(Y,HIGH);delay(1500);digitalWrite(Y,LOW);digitalWrite(R,HIGH);delay(5000);digitalWrite(R,LOW);}", "boards": "Uno, Nano, Mega", "libs": ""}, {"title": "Servo Potentiometer Control", "cat": "Motor", "icon": "⚙️", "desc": "Turn a potentiometer to control servo angle.", "components": ["Arduino Uno", "SG90 Servo", "10kΩ potentiometer"], "wiring": ["Pot outer pins → 5V/GND", "Pot wiper → A0", "Servo signal → D9", "Servo VCC → 5V/external", "Servo GND → GND"], "code": "#include <Servo.h>\nServo s;\nvoid setup(){s.attach(9);}\nvoid loop(){s.write(map(analogRead(A0),0,1023,0,180));delay(15);}", "boards": "Uno, Nano, Mega", "libs": "Servo"}, {"title": "Button Controlled LED", "cat": "LED", "icon": "🔘", "desc": "Press a button to turn an LED on.", "components": ["Arduino Uno", "Push button", "LED", "220Ω resistor"], "wiring": ["Button → D2 and GND", "LED anode → D9 via 220Ω", "LED cathode → GND"], "code": "const byte BUTTON=2,LED=9;\nvoid setup(){pinMode(BUTTON,INPUT_PULLUP);pinMode(LED,OUTPUT);}\nvoid loop(){digitalWrite(LED,digitalRead(BUTTON)==LOW);}", "boards": "Uno, Nano, Mega", "libs": ""}, {"title": "PIR Motion Alarm", "cat": "Security", "icon": "🚨", "desc": "Detects movement and activates a buzzer and LED.", "components": ["Arduino Uno", "PIR HC-SR501", "Buzzer", "LED", "220Ω"], "wiring": ["PIR VCC → 5V", "PIR GND → GND", "PIR OUT → D2", "Buzzer + → D8", "Buzzer − → GND", "LED → D9 via 220Ω"], "code": "const byte PIR=2,BUZZER=8,LED=9;\nvoid setup(){pinMode(PIR,INPUT);pinMode(BUZZER,OUTPUT);pinMode(LED,OUTPUT);}\nvoid loop(){bool m=digitalRead(PIR);digitalWrite(LED,m);if(m)tone(BUZZER,1500);else noTone(BUZZER);delay(50);}", "boards": "Uno, Nano, Mega", "libs": ""}, {"title": "Soil Moisture Detector", "cat": "Home", "icon": "🌱", "desc": "Warns when soil is dry.", "components": ["Arduino Uno", "Soil moisture sensor", "LED", "Buzzer"], "wiring": ["Sensor VCC → 5V", "GND → GND", "AO → A0", "LED anode → D9 via 220Ω", "Buzzer + → D8", "Buzzer − → GND"], "code": "const byte SOIL=A0,LED=9,BUZZER=8;\nvoid setup(){pinMode(LED,OUTPUT);pinMode(BUZZER,OUTPUT);Serial.begin(9600);}\nvoid loop(){int v=analogRead(SOIL);bool dry=v>650;digitalWrite(LED,dry);if(dry)tone(BUZZER,900);else noTone(BUZZER);Serial.println(v);delay(300);}", "boards": "Uno, Nano, Mega", "libs": ""}, {"title": "Potentiometer LED Dimmer", "cat": "LED", "icon": "🎚️", "desc": "Use a knob to change LED brightness with PWM.", "components": ["Arduino Uno", "10kΩ potentiometer", "LED", "220Ω resistor"], "wiring": ["Pot outer → 5V/GND", "Pot wiper → A0", "LED anode → D9 via 220Ω", "LED cathode → GND"], "code": "const byte POT=A0,LED=9;\nvoid setup(){pinMode(LED,OUTPUT);}\nvoid loop(){analogWrite(LED,map(analogRead(POT),0,1023,0,255));delay(10);}", "boards": "Uno, Nano, Mega", "libs": ""}, {"title": "Automatic Door PIR + Servo", "cat": "Security", "icon": "🚪", "desc": "Motion opens a small servo door and closes it after a delay.", "components": ["Arduino Uno", "PIR sensor", "SG90 Servo"], "wiring": ["PIR VCC → 5V", "PIR GND → GND", "PIR OUT → D2", "Servo signal → D9", "Servo VCC → 5V/external", "Servo GND → GND"], "code": "#include <Servo.h>\nServo door;\nvoid setup(){pinMode(2,INPUT);door.attach(9);door.write(0);}\nvoid loop(){if(digitalRead(2)){door.write(90);delay(2500);door.write(0);}delay(50);}", "boards": "Uno, Nano, Mega", "libs": "Servo"}, {"title": "DC Fan PWM Controller", "cat": "Motor", "icon": "🌀", "desc": "Control a small DC fan through a transistor or MOSFET.", "components": ["Arduino Uno", "DC fan", "Logic-level MOSFET", "Flyback diode", "External motor supply"], "wiring": ["D9 → MOSFET gate through ~100Ω", "Gate pulldown → GND", "Fan + → external +V", "Fan − → MOSFET drain", "MOSFET source → GND", "External GND ↔ Arduino GND", "Diode across fan, cathode to +V"], "code": "const byte FAN=9;\nvoid setup(){pinMode(FAN,OUTPUT);}\nvoid loop(){for(int p=0;p<=255;p+=5){analogWrite(FAN,p);delay(30);}for(int p=255;p>=0;p-=5){analogWrite(FAN,p);delay(30);}}", "boards": "Uno, Nano, Mega", "libs": ""}, {"title": "RGB LED Color Mixer", "cat": "LED", "icon": "🌈", "desc": "Three potentiometers control RGB LED brightness.", "components": ["Arduino Uno", "RGB LED", "3 × 220Ω", "3 × 10kΩ potentiometers"], "wiring": ["R channel → D9 via 220Ω", "G channel → D10 via 220Ω", "B channel → D11 via 220Ω", "Common cathode → GND", "Pot wipers → A0/A1/A2"], "code": "const byte R=9,G=10,B=11;\nvoid setup(){pinMode(R,OUTPUT);pinMode(G,OUTPUT);pinMode(B,OUTPUT);}\nvoid loop(){analogWrite(R,map(analogRead(A0),0,1023,0,255));analogWrite(G,map(analogRead(A1),0,1023,0,255));analogWrite(B,map(analogRead(A2),0,1023,0,255));delay(10);}", "boards": "Uno, Nano, Mega", "libs": ""}, {"title": "Buzzer Doorbell", "cat": "Home", "icon": "🔔", "desc": "Press a button to play a two-tone doorbell.", "components": ["Arduino Uno", "Push button", "Passive buzzer"], "wiring": ["Button → D2 and GND", "Buzzer + → D8", "Buzzer − → GND"], "code": "const byte BUTTON=2,BUZZER=8;\nvoid setup(){pinMode(BUTTON,INPUT_PULLUP);}\nvoid loop(){if(digitalRead(BUTTON)==LOW){tone(BUZZER,1000,200);delay(220);tone(BUZZER,1400,250);delay(300);}}", "boards": "Uno, Nano, Mega", "libs": ""}, {"title": "Parking Sensor", "cat": "Sensor", "icon": "🅿️", "desc": "Distance changes LEDs and buzzer warnings as an object approaches.", "components": ["Arduino Uno", "HC-SR04", "Green/Yellow/Red LEDs", "3 × 220Ω", "Buzzer"], "wiring": ["TRIG → D10", "ECHO → D11", "Green → D5 via 220Ω", "Yellow → D6 via 220Ω", "Red → D7 via 220Ω", "Buzzer + → D8", "All GND → GND"], "code": "const byte T=10,E=11,G=5,Y=6,R=7,B=8;\nlong cm(){digitalWrite(T,LOW);delayMicroseconds(2);digitalWrite(T,HIGH);delayMicroseconds(10);digitalWrite(T,LOW);long u=pulseIn(E,HIGH,30000);return u?u*.0343/2:999;}\nvoid setup(){pinMode(T,OUTPUT);pinMode(E,INPUT);for(byte p: {G,Y,R})pinMode(p,OUTPUT);pinMode(B,OUTPUT);}\nvoid loop(){long d=cm();digitalWrite(G,d>=25);digitalWrite(Y,d<25&&d>=10);digitalWrite(R,d<10);if(d<10)tone(B,1500);else noTone(B);delay(100);}", "boards": "Uno, Nano, Mega", "libs": ""}, {"title": "LED Chase Effect", "cat": "Game", "icon": "✨", "desc": "Eight LEDs create a running light.", "components": ["Arduino Uno", "8 LEDs", "8 × 220Ω"], "wiring": ["LED anodes → D2-D9 via 220Ω", "All cathodes → GND"], "code": "const byte p[]={2,3,4,5,6,7,8,9};\nvoid setup(){for(byte x:p)pinMode(x,OUTPUT);}\nvoid loop(){for(byte i=0;i<8;i++){digitalWrite(p[i],HIGH);delay(80);digitalWrite(p[i],LOW);}for(int i=6;i>0;i--){digitalWrite(p[i],HIGH);delay(80);digitalWrite(p[i],LOW);}}", "boards": "Uno, Nano, Mega", "libs": ""}, {"title": "Touch Sensor LED", "cat": "Home", "icon": "👆", "desc": "Touch a TTP223 module to switch an LED.", "components": ["Arduino Uno", "TTP223", "LED", "220Ω"], "wiring": ["TTP223 VCC → 5V", "GND → GND", "OUT → D2", "LED → D9 via 220Ω"], "code": "const byte TOUCH=2,LED=9;\nvoid setup(){pinMode(TOUCH,INPUT);pinMode(LED,OUTPUT);}\nvoid loop(){digitalWrite(LED,digitalRead(TOUCH));}", "boards": "Uno, Nano, Mega", "libs": ""}, {"title": "Servo Sweep", "cat": "Motor", "icon": "🔄", "desc": "Smoothly sweep a servo from 0 to 180 degrees.", "components": ["Arduino Uno", "SG90 Servo"], "wiring": ["Signal → D9", "VCC → 5V/external", "GND → GND"], "code": "#include <Servo.h>\nServo s;\nvoid setup(){s.attach(9);}\nvoid loop(){for(int a=0;a<=180;a++){s.write(a);delay(10);}for(int a=180;a>=0;a--){s.write(a);delay(10);}}", "boards": "Uno, Nano, Mega", "libs": "Servo"}, {"title": "Serial LED Control", "cat": "Game", "icon": "⌨️", "desc": "Type ON or OFF in Serial Monitor to control an LED.", "components": ["Arduino Uno", "LED"], "wiring": ["LED anode → D13", "LED cathode → GND"], "code": "void setup(){pinMode(13,OUTPUT);Serial.begin(9600);}\nvoid loop(){if(Serial.available()){String s=Serial.readStringUntil('\\n');s.trim();s.toUpperCase();if(s==\"ON\")digitalWrite(13,HIGH);if(s==\"OFF\")digitalWrite(13,LOW);}}", "boards": "Uno, Nano, Mega", "libs": ""}, {"title": "DHT11 Temperature & Humidity", "cat": "Sensor", "icon": "🌡️", "desc": "Read temperature and humidity and print them over serial.", "components": ["Arduino Uno", "DHT11", "10kΩ pull-up if bare sensor"], "wiring": ["DHT VCC → 5V", "DHT GND → GND", "DHT DATA → D2", "Bare DHT: 10kΩ DATA → 5V"], "code": "#include <DHT.h>\nDHT dht(2,DHT11);\nvoid setup(){Serial.begin(9600);dht.begin();}\nvoid loop(){float h=dht.readHumidity(),t=dht.readTemperature();if(isnan(h)||isnan(t)){Serial.println(\"DHT read failed\");}else{Serial.print(\"Temp: \");Serial.print(t);Serial.print(\" C  Humidity: \");Serial.print(h);Serial.println(\" %\");}delay(2000);}", "boards": "Uno, Nano, Mega", "libs": "DHT sensor library"}, {"title": "Bluetooth LED Control", "cat": "Home", "icon": "📱", "desc": "Control an LED using HC-05/HC-06 serial Bluetooth.", "components": ["Arduino Uno", "HC-05/HC-06", "LED", "220Ω"], "wiring": ["HC-05 VCC → 5V module supply", "HC-05 GND → GND", "HC-05 TX → D10 (SoftwareSerial RX)", "HC-05 RX ← D11 through level divider", "LED → D13"], "code": "#include <SoftwareSerial.h>\nSoftwareSerial BT(10,11);\nvoid setup(){pinMode(13,OUTPUT);BT.begin(9600);}\nvoid loop(){if(BT.available()){char c=BT.read();if(c=='1')digitalWrite(13,HIGH);if(c=='0')digitalWrite(13,LOW);}}", "boards": "Uno, Nano, Mega", "libs": "SoftwareSerial"}, {"title": "Line Following Robot", "cat": "Robot", "icon": "🤖", "desc": "Two IR sensors steer a two-motor robot through an L298N.", "components": ["Arduino Uno", "L298N", "2 IR sensors", "2 DC motors", "Battery"], "wiring": ["IR left OUT → D2", "IR right OUT → D3", "L298N IN1/IN2 → D8/D9", "L298N IN3/IN4 → D10/D11", "Motor outputs → motors", "Common GND → GND"], "code": "const byte L=2,R=3;\nvoid setup(){pinMode(L,INPUT);pinMode(R,INPUT);for(byte p=8;p<=11;p++)pinMode(p,OUTPUT);}\nvoid motor(bool a,bool b,bool c,bool d){digitalWrite(8,a);digitalWrite(9,b);digitalWrite(10,c);digitalWrite(11,d);}\nvoid loop(){int l=digitalRead(L),r=digitalRead(R);if(l==0&&r==0)motor(1,0,1,0);else if(l==0)motor(0,0,1,0);else if(r==0)motor(1,0,0,0);else motor(0,0,0,0);}", "boards": "Uno, Nano, Mega", "libs": ""}, {"title": "LCD 16x2 Counter", "cat": "Display", "icon": "🔢", "desc": "Counts button presses on a 16x2 I2C LCD.", "components": ["Arduino Uno", "16x2 I2C LCD", "Push button"], "wiring": ["LCD VCC→5V", "LCD GND→GND", "SDA→A4", "SCL→A5", "Button→D2 and GND"], "code": "#include <Wire.h>\n#include <LiquidCrystal_I2C.h>\nLiquidCrystal_I2C lcd(0x27,16,2);\nint count=0;bool last=HIGH;\nvoid setup(){pinMode(2,INPUT_PULLUP);lcd.init();lcd.backlight();lcd.print(\"Count: 0\");}\nvoid loop(){bool now=digitalRead(2);if(last&& !now){count++;lcd.clear();lcd.print(\"Count: \");lcd.print(count);delay(180);}last=now;}", "boards": "LiquidCrystal I2C", "libs": ""}, {"title": "Keypad Password Lock", "cat": "Security", "icon": "🔐", "desc": "Enter a four-digit password on a 4x4 keypad to move a servo.", "components": ["Arduino Uno", "4x4 keypad", "SG90 Servo"], "wiring": ["Keypad rows→D2-D5", "Keypad columns→D6-D9", "Servo signal→D10", "Servo VCC→5V/external", "Servo GND→GND"], "code": "#include <Keypad.h>\n#include <Servo.h>\nServo lock;const byte R=4,C=4;char keys[R][C]={{'1','2','3','A'},{'4','5','6','B'},{'7','8','9','C'},{'*','0','#','D'}};byte rp[R]={2,3,4,5},cp[C]={6,7,8,9};Keypad pad=Keypad(makeKeymap(keys),rp,cp,R,C);String code=\"1234\",in=\"\";\nvoid setup(){lock.attach(10);lock.write(0);}\nvoid loop(){char k=pad.getKey();if(!k)return;if(k=='#'){if(in==code)lock.write(90);in=\"\";}else if(k=='*'){lock.write(0);in=\"\";}else if(in.length()<4)in+=k;}", "boards": "Keypad; Servo", "libs": ""}, {"title": "Flame Detector Alarm", "cat": "Security", "icon": "🔥", "desc": "Detect a flame sensor output and sound an alarm.", "components": ["Arduino Uno", "Flame sensor module", "Buzzer", "LED"], "wiring": ["Sensor VCC→5V", "GND→GND", "DO→D2", "Buzzer→D8", "LED→D9 via 220Ω"], "code": "void setup(){pinMode(2,INPUT);pinMode(8,OUTPUT);pinMode(9,OUTPUT);}\nvoid loop(){bool flame=digitalRead(2)==LOW;digitalWrite(9,flame);if(flame)tone(8,1800);else noTone(8);delay(50);}", "boards": "", "libs": ""}, {"title": "Gas Leakage Alarm", "cat": "Security", "icon": "🧪", "desc": "Warn when an MQ gas sensor analog value exceeds a threshold.", "components": ["Arduino Uno", "MQ-2 module", "Buzzer", "LED"], "wiring": ["MQ VCC→5V", "GND→GND", "AO→A0", "Buzzer→D8", "LED→D9"], "code": "void setup(){pinMode(8,OUTPUT);pinMode(9,OUTPUT);Serial.begin(9600);}\nvoid loop(){int gas=analogRead(A0);Serial.println(gas);bool alarm=gas>500;digitalWrite(9,alarm);if(alarm)tone(8,2000);else noTone(8);delay(200);}", "boards": "", "libs": ""}, {"title": "IR Obstacle Detector", "cat": "Sensor", "icon": "🧱", "desc": "Turn on an LED when an IR obstacle module detects an object.", "components": ["Arduino Uno", "IR obstacle sensor", "LED", "220Ω"], "wiring": ["Sensor VCC→5V", "GND→GND", "OUT→D2", "LED→D9 via 220Ω"], "code": "void setup(){pinMode(2,INPUT);pinMode(9,OUTPUT);}\nvoid loop(){digitalWrite(9,digitalRead(2)==LOW);}", "boards": "", "libs": ""}, {"title": "Clap Switch", "cat": "Game", "icon": "👏", "desc": "Use a sound sensor to toggle an LED.", "components": ["Arduino Uno", "Sound sensor module", "LED", "220Ω"], "wiring": ["Sound VCC→5V", "GND→GND", "DO→D2", "LED→D9 via 220Ω"], "code": "bool state=false;bool last=HIGH;\nvoid setup(){pinMode(2,INPUT);pinMode(9,OUTPUT);}\nvoid loop(){bool now=digitalRead(2);if(last&& !now){state=!state;digitalWrite(9,state);delay(250);}last=now;}", "boards": "", "libs": ""}, {"title": "Vibration Alarm", "cat": "Security", "icon": "📳", "desc": "Detect vibration with a SW-420 module.", "components": ["Arduino Uno", "SW-420 module", "Buzzer", "LED"], "wiring": ["VCC→5V", "GND→GND", "DO→D2", "Buzzer→D8", "LED→D9"], "code": "void setup(){pinMode(2,INPUT);pinMode(8,OUTPUT);pinMode(9,OUTPUT);}\nvoid loop(){bool hit=digitalRead(2)==LOW;digitalWrite(9,hit);if(hit)tone(8,1600);else noTone(8);}", "boards": "", "libs": ""}, {"title": "Tilt Alarm", "cat": "Security", "icon": "↗️", "desc": "Use a tilt switch to trigger a warning.", "components": ["Arduino Uno", "Tilt switch", "Buzzer", "LED"], "wiring": ["Tilt one side→D2", "Tilt other→GND", "Buzzer→D8", "LED→D9"], "code": "void setup(){pinMode(2,INPUT_PULLUP);pinMode(8,OUTPUT);pinMode(9,OUTPUT);}\nvoid loop(){bool tilt=digitalRead(2)==LOW;digitalWrite(9,tilt);if(tilt)tone(8,1200);else noTone(8);}", "boards": "", "libs": ""}, {"title": "Water Leak Detector", "cat": "Sensor", "icon": "💧", "desc": "Detect water using a water sensor plate.", "components": ["Arduino Uno", "Water sensor", "Buzzer", "LED"], "wiring": ["Sensor VCC→5V", "GND→GND", "AO→A0", "Buzzer→D8", "LED→D9"], "code": "void setup(){pinMode(8,OUTPUT);pinMode(9,OUTPUT);Serial.begin(9600);}\nvoid loop(){int v=analogRead(A0);bool leak=v>350;Serial.println(v);digitalWrite(9,leak);if(leak)tone(8,1400);else noTone(8);delay(100);}", "boards": "", "libs": ""}, {"title": "Analog Voltmeter", "cat": "Sensor", "icon": "🔋", "desc": "Measure a low DC voltage with a resistor divider.", "components": ["Arduino Uno", "100kΩ", "10kΩ", "Voltage source"], "wiring": ["Source +→100kΩ→A0", "A0→10kΩ→GND", "Source GND→Arduino GND"], "code": "void setup(){Serial.begin(9600);}\nvoid loop(){float a=analogRead(A0)*5.0/1023.0;float v=a*11.0;Serial.print(\"Voltage: \");Serial.println(v,2);delay(500);}", "boards": "", "libs": ""}, {"title": "Battery Level LEDs", "cat": "LED", "icon": "🔋", "desc": "Show battery voltage using three LEDs.", "components": ["Arduino Uno", "3 LEDs", "3 × 220Ω", "Resistor divider"], "wiring": ["Divider midpoint→A0", "Green→D5", "Yellow→D6", "Red→D7", "All LED cathodes→GND"], "code": "void setup(){for(byte p: {5,6,7})pinMode(p,OUTPUT);}\nvoid loop(){float v=analogRead(A0)*5.0/1023.0*2.0;digitalWrite(5,v>4.0);digitalWrite(6,v>3.5&&v<=4.0);digitalWrite(7,v<=3.5);delay(200);}", "boards": "", "libs": ""}, {"title": "IR Remote LED", "cat": "Home", "icon": "📺", "desc": "Use an IR remote to toggle an LED.", "components": ["Arduino Uno", "IR receiver VS1838B", "LED", "220Ω"], "wiring": ["IR VCC→5V", "GND→GND", "OUT→D2", "LED→D9"], "code": "#include <IRremote.hpp>\nconst byte LED=9;\nvoid setup(){pinMode(LED,OUTPUT);IrReceiver.begin(2,ENABLE_LED_FEEDBACK);}\nvoid loop(){if(IrReceiver.decode()){digitalWrite(LED,!digitalRead(LED));IrReceiver.resume();}}", "boards": "IRremote", "libs": ""}, {"title": "Mini Piano", "cat": "Game", "icon": "🎹", "desc": "Play tones with four push buttons.", "components": ["Arduino Uno", "4 push buttons", "Passive buzzer"], "wiring": ["Buttons→D2-D5 and GND", "Buzzer +→D8", "Buzzer −→GND"], "code": "const byte b[]={2,3,4,5};const int notes[]={262,330,392,523};\nvoid setup(){for(byte p:b)pinMode(p,INPUT_PULLUP);}\nvoid loop(){for(byte i=0;i<4;i++)if(digitalRead(b[i])==LOW){tone(8,notes[i]);return;}noTone(8);}", "boards": "", "libs": ""}, {"title": "Reaction Timer Game", "cat": "Game", "icon": "⏱️", "desc": "Press a button as soon as the LED turns on.", "components": ["Arduino Uno", "LED", "Button", "Buzzer"], "wiring": ["LED→D9 via 220Ω", "Button→D2 and GND", "Buzzer→D8"], "code": "void setup(){pinMode(9,OUTPUT);pinMode(2,INPUT_PULLUP);Serial.begin(9600);randomSeed(analogRead(A0));}\nvoid loop(){digitalWrite(9,LOW);delay(random(1000,4000));digitalWrite(9,HIGH);unsigned long start=millis();while(digitalRead(2)==HIGH){}unsigned long t=millis()-start;digitalWrite(9,LOW);tone(8,1200,100);Serial.print(\"Reaction ms: \");Serial.println(t);delay(1500);}", "boards": "", "libs": ""}, {"title": "Electronic Dice", "cat": "Game", "icon": "🎲", "desc": "Press a button to show a random value using six LEDs.", "components": ["Arduino Uno", "6 LEDs", "6 × 220Ω", "Button"], "wiring": ["LEDs→D3-D8 via 220Ω", "Button→D2 and GND"], "code": "const byte leds[]={3,4,5,6,7,8};\nvoid setup(){for(byte p:leds)pinMode(p,OUTPUT);pinMode(2,INPUT_PULLUP);randomSeed(analogRead(A0));}\nvoid loop(){if(digitalRead(2)==LOW){int n=random(1,7);for(byte i=0;i<6;i++)digitalWrite(leds[i],i<n);delay(300);while(digitalRead(2)==LOW);}}", "boards": "", "libs": ""}, {"title": "Digital Stopwatch", "cat": "Game", "icon": "⏱️", "desc": "Button starts and stops a millisecond timer shown in Serial Monitor.", "components": ["Arduino Uno", "Push button"], "wiring": ["Button→D2 and GND"], "code": "bool run=false,last=HIGH;unsigned long start=0,elapsed=0;\nvoid setup(){pinMode(2,INPUT_PULLUP);Serial.begin(9600);}\nvoid loop(){bool now=digitalRead(2);if(last&&!now){if(!run){start=millis()-elapsed;run=true;}else{elapsed=millis()-start;run=false;Serial.print(\"Time: \");Serial.println(elapsed); }delay(180);}last=now;if(run&&millis()%1000<10)Serial.println((millis()-start)/1000);}", "boards": "", "libs": ""}, {"title": "7 Segment Counter", "cat": "Display", "icon": "7️⃣", "desc": "Count from 0 to 9 on a common-cathode 7-segment display.", "components": ["Arduino Uno", "Common-cathode 7-segment", "7 × 220Ω"], "wiring": ["Segments a-g→D2-D8 through 220Ω", "Common cathode→GND"], "code": "const byte s[]={2,3,4,5,6,7,8};const byte num[10][7]={{1,1,1,1,1,1,0},{0,1,1,0,0,0,0},{1,1,0,1,1,0,1},{1,1,1,1,0,0,1},{0,1,1,0,0,1,1},{1,0,1,1,0,1,1},{1,0,1,1,1,1,1},{1,1,1,0,0,0,0},{1,1,1,1,1,1,1},{1,1,1,1,0,1,1}};\nvoid setup(){for(byte p:s)pinMode(p,OUTPUT);}\nvoid loop(){for(byte n=0;n<10;n++){for(byte i=0;i<7;i++)digitalWrite(s[i],num[n][i]);delay(1000);}}", "boards": "", "libs": ""}, {"title": "LDR Night Lamp", "cat": "Home", "icon": "🌙", "desc": "Turn on a lamp LED when it is dark.", "components": ["Arduino Uno", "LDR", "10kΩ", "LED", "220Ω"], "wiring": ["LDR divider midpoint→A0", "LED→D9 via 220Ω", "Divider GND→GND"], "code": "void setup(){pinMode(9,OUTPUT);}\nvoid loop(){digitalWrite(9,analogRead(A0)<450);delay(100);}", "boards": "", "libs": ""}, {"title": "Smart Parking Barrier", "cat": "Gate", "icon": "🅿️", "desc": "Open a barrier servo when a vehicle is detected.", "components": ["Arduino Uno", "HC-SR04", "Servo"], "wiring": ["TRIG→D10", "ECHO→D11", "Servo signal→D9", "Servo power→external 5V", "Common GND"], "code": "#include <Servo.h>\nServo barrier;\nvoid setup(){pinMode(10,OUTPUT);pinMode(11,INPUT);barrier.attach(9);barrier.write(0);}\nvoid loop(){digitalWrite(10,LOW);delayMicroseconds(2);digitalWrite(10,HIGH);delayMicroseconds(10);digitalWrite(10,LOW);long u=pulseIn(11,HIGH,30000);long d=u*.0343/2;if(d>0&&d<20){barrier.write(90);delay(2000);barrier.write(0);}delay(100);}", "boards": "Servo", "libs": ""}, {"title": "Automatic Dustbin", "cat": "Home", "icon": "🗑️", "desc": "Opens a lid servo when a hand comes near.", "components": ["Arduino Uno", "HC-SR04", "Servo"], "wiring": ["TRIG→D10", "ECHO→D11", "Servo signal→D9", "Servo VCC→external 5V", "GND common"], "code": "#include <Servo.h>\nServo lid;\nlong read(){digitalWrite(10,LOW);delayMicroseconds(2);digitalWrite(10,HIGH);delayMicroseconds(10);digitalWrite(10,LOW);return pulseIn(11,HIGH,30000)*.0343/2;}\nvoid setup(){pinMode(10,OUTPUT);pinMode(11,INPUT);lid.attach(9);lid.write(0);}\nvoid loop(){long d=read();if(d>0&&d<20){lid.write(90);delay(2500);}else lid.write(0);delay(100);}", "boards": "Servo", "libs": ""}, {"title": "Temperature Fan Control", "cat": "Home", "icon": "🌡️", "desc": "Turn on a fan when a TMP36 temperature sensor gets warm.", "components": ["Arduino Uno", "TMP36", "MOSFET/transistor", "DC fan"], "wiring": ["TMP36 VCC→5V", "GND→GND", "OUT→A0", "MOSFET gate→D9", "Fan uses external supply and flyback diode", "Common GND"], "code": "const byte FAN=9;\nvoid setup(){pinMode(FAN,OUTPUT);Serial.begin(9600);}\nvoid loop(){int raw=analogRead(A0);float v=raw*5.0/1023.0;float c=(v-0.5)*100.0;int pwm=constrain((int)((c-25)*25),0,255);analogWrite(FAN,pwm);Serial.println(c);delay(500);}", "boards": "", "libs": ""}, {"title": "Ultrasonic Radar Servo", "cat": "Sensor", "icon": "📡", "desc": "Sweep a servo and print distance readings.", "components": ["Arduino Uno", "HC-SR04", "SG90 Servo"], "wiring": ["Servo signal→D9", "TRIG→D10", "ECHO→D11", "Sensor/servo GND→GND"], "code": "#include <Servo.h>\nServo s;\nlong cm(){digitalWrite(10,LOW);delayMicroseconds(2);digitalWrite(10,HIGH);delayMicroseconds(10);digitalWrite(10,LOW);long u=pulseIn(11,HIGH,30000);return u?u*.0343/2:999;}\nvoid setup(){s.attach(9);pinMode(10,OUTPUT);pinMode(11,INPUT);Serial.begin(9600);}\nvoid loop(){for(int a=20;a<=160;a+=5){s.write(a);delay(60);Serial.print(a);Serial.print(',');Serial.println(cm());}for(int a=160;a>=20;a-=5){s.write(a);delay(60);Serial.print(a);Serial.print(',');Serial.println(cm());}}", "boards": "Servo", "libs": ""}, {"title": "OLED Sensor Display", "cat": "Display", "icon": "🖥️", "desc": "Show an analog sensor value on a 128x64 OLED.", "components": ["Arduino Uno", "SSD1306 I2C OLED", "LDR"], "wiring": ["OLED VCC→5V", "GND→GND", "SDA→A4", "SCL→A5", "LDR midpoint→A0"], "code": "#include <Wire.h>\n#include <Adafruit_GFX.h>\n#include <Adafruit_SSD1306.h>\nAdafruit_SSD1306 d(128,64,&Wire,-1);\nvoid setup(){d.begin(SSD1306_SWITCHCAPVCC,0x3C);d.clearDisplay();d.setTextColor(SSD1306_WHITE);}\nvoid loop(){d.clearDisplay();d.setTextSize(2);d.setCursor(0,0);d.print(\"LDR: \");d.println(analogRead(A0));d.display();delay(300);}", "boards": "Adafruit GFX; Adafruit SSD1306", "libs": ""}, {"title": "Relay Lamp Controller", "cat": "Home", "icon": "💡", "desc": "Control a low-voltage load through a relay module.", "components": ["Arduino Uno", "1-channel relay module", "LED/load"], "wiring": ["Relay VCC→5V", "GND→GND", "IN→D7", "Use proper isolated/load-side wiring for mains"], "code": "const byte RELAY=7;\nvoid setup(){pinMode(RELAY,OUTPUT);digitalWrite(RELAY,HIGH);}\nvoid loop(){digitalWrite(RELAY,LOW);delay(3000);digitalWrite(RELAY,HIGH);delay(3000);}", "boards": "", "libs": ""}, {"title": "Water Level Alarm", "cat": "Sensor", "icon": "🚰", "desc": "Use two water-level probes as low/high indicators.", "components": ["Arduino Uno", "2 water-level switches/probes", "Buzzer", "LEDs"], "wiring": ["Low probe→D2 and GND", "High probe→D3 and GND", "Green→D5", "Red→D6", "Buzzer→D8"], "code": "void setup(){pinMode(2,INPUT_PULLUP);pinMode(3,INPUT_PULLUP);pinMode(5,OUTPUT);pinMode(6,OUTPUT);pinMode(8,OUTPUT);}\nvoid loop(){bool low=digitalRead(2)==LOW,high=digitalRead(3)==LOW;digitalWrite(5,!high);digitalWrite(6,high);if(high)tone(8,1800);else noTone(8);}", "boards": "", "libs": ""}, {"title": "L298N Motor Direction", "cat": "Motor", "icon": "🚗", "desc": "Control a DC motor forward and reverse.", "components": ["Arduino Uno", "L298N", "DC motor", "External battery"], "wiring": ["IN1→D8", "IN2→D9", "ENA→D10 PWM", "Motor OUT1/OUT2→motor", "L298N motor supply→battery", "Arduino GND↔battery GND"], "code": "const byte IN1=8,IN2=9,EN=10;\nvoid setup(){pinMode(IN1,OUTPUT);pinMode(IN2,OUTPUT);pinMode(EN,OUTPUT);}\nvoid loop(){digitalWrite(IN1,HIGH);digitalWrite(IN2,LOW);analogWrite(EN,180);delay(2500);digitalWrite(IN1,LOW);digitalWrite(IN2,HIGH);delay(2500);digitalWrite(IN1,LOW);digitalWrite(IN2,LOW);delay(1000);}", "boards": "", "libs": ""}, {"title": "Obstacle Avoiding Robot", "cat": "Robot", "icon": "🤖", "desc": "A servo-mounted ultrasonic sensor chooses a safer direction.", "components": ["Arduino Uno", "HC-SR04", "SG90 Servo", "L298N", "2 DC motors"], "wiring": ["HC-SR04 TRIG→D10", "ECHO→D11", "Servo→D9", "L298N IN1/IN2→D4/D5", "IN3/IN4→D6/D7", "Common GND"], "code": "#include <Servo.h>\nServo head;const byte T=10,E=11;\nlong cm(){digitalWrite(T,LOW);delayMicroseconds(2);digitalWrite(T,HIGH);delayMicroseconds(10);digitalWrite(T,LOW);long u=pulseIn(E,HIGH,25000);return u?u*.0343/2:999;}\nvoid motor(byte a,byte b,byte c,byte d){digitalWrite(4,a);digitalWrite(5,b);digitalWrite(6,c);digitalWrite(7,d);}\nvoid setup(){head.attach(9);pinMode(T,OUTPUT);pinMode(E,INPUT);for(byte p=4;p<=7;p++)pinMode(p,OUTPUT);head.write(90);}\nvoid loop(){if(cm()<20){motor(0,0,0,0);head.write(30);delay(400);long r=cm();head.write(150);delay(400);long l=cm();head.write(90);if(r>l)motor(0,1,1,0);else motor(1,0,0,1);delay(500);}else motor(1,0,1,0);}", "boards": "Servo", "libs": ""}, {"title": "Mini Weather Station", "cat": "Display", "icon": "🌤️", "desc": "Show DHT11 readings in the Serial Monitor.", "components": ["Arduino Uno", "DHT11"], "wiring": ["VCC→5V", "GND→GND", "DATA→D2"], "code": "#include <DHT.h>\nDHT d(2,DHT11);\nvoid setup(){Serial.begin(9600);d.begin();}\nvoid loop(){float t=d.readTemperature(),h=d.readHumidity();Serial.print(\"T=\");Serial.print(t);Serial.print(\"C H=\");Serial.print(h);Serial.println(\"%\");delay(2000);}", "boards": "DHT sensor library", "libs": ""}, {"title": "Sound Level Meter", "cat": "Sensor", "icon": "🔊", "desc": "Display the peak sound sensor reading.", "components": ["Arduino Uno", "Analog sound sensor"], "wiring": ["VCC→5V", "GND→GND", "AO→A0"], "code": "void setup(){Serial.begin(9600);}\nvoid loop(){int peak=0;for(int i=0;i<100;i++){peak=max(peak,analogRead(A0));delay(1);}Serial.println(peak);delay(100);}", "boards": "", "libs": ""}, {"title": "Light Following Servo", "cat": "Home", "icon": "☀️", "desc": "Two LDRs make a servo follow the brighter side.", "components": ["Arduino Uno", "2 LDRs", "2 × 10kΩ", "Servo"], "wiring": ["Left divider→A0", "Right divider→A1", "Servo signal→D9", "Servo VCC→external 5V", "Common GND"], "code": "#include <Servo.h>\nServo s;int angle=90;\nvoid setup(){s.attach(9);}\nvoid loop(){int l=analogRead(A0),r=analogRead(A1);if(l>r+30)angle--;if(r>l+30)angle++;angle=constrain(angle,0,180);s.write(angle);delay(25);}", "boards": "Servo", "libs": ""}, {"title": "Smart Curtain Servo", "cat": "Home", "icon": "🪟", "desc": "Automatically open a curtain when it is bright.", "components": ["Arduino Uno", "LDR", "10kΩ", "Servo"], "wiring": ["LDR divider midpoint→A0", "Servo signal→D9", "Servo power→external 5V", "Common GND"], "code": "#include <Servo.h>\nServo curtain;\nvoid setup(){curtain.attach(9);}\nvoid loop(){int light=analogRead(A0);curtain.write(light>600?120:20);delay(500);}", "boards": "Servo", "libs": ""}, {"title": "Mini Security System", "cat": "Security", "icon": "🛡️", "desc": "Combine PIR and door switch with a buzzer.", "components": ["Arduino Uno", "PIR", "Magnetic/reed switch", "Buzzer", "LED"], "wiring": ["PIR OUT→D2", "Reed switch→D3 and GND", "Buzzer→D8", "LED→D9", "All GND→GND"], "code": "void setup(){pinMode(2,INPUT);pinMode(3,INPUT_PULLUP);pinMode(8,OUTPUT);pinMode(9,OUTPUT);}\nvoid loop(){bool alarm=digitalRead(2)||digitalRead(3)==LOW;digitalWrite(9,alarm);if(alarm)tone(8,1800);else noTone(8);}", "boards": "", "libs": ""}, {"title": "People Counter", "cat": "Sensor", "icon": "👥", "desc": "Count entries using two IR break-beam sensors.", "components": ["Arduino Uno", "2 IR sensors", "LED"], "wiring": ["IR A OUT→D2", "IR B OUT→D3", "LED→D9"], "code": "long count=0;bool lastA=false;\nvoid setup(){pinMode(2,INPUT);pinMode(3,INPUT);pinMode(9,OUTPUT);Serial.begin(9600);}\nvoid loop(){bool a=digitalRead(2)==LOW;if(a&&!lastA){count++;Serial.println(count);digitalWrite(9,HIGH);delay(150);digitalWrite(9,LOW);}lastA=a;}", "boards": "", "libs": ""}, {"title": "Object Counter", "cat": "Sensor", "icon": "📦", "desc": "Count objects crossing an IR sensor.", "components": ["Arduino Uno", "IR obstacle sensor", "LED"], "wiring": ["IR OUT→D2", "LED→D9"], "code": "unsigned long count=0;bool last=false;\nvoid setup(){pinMode(2,INPUT);pinMode(9,OUTPUT);Serial.begin(9600);}\nvoid loop(){bool hit=digitalRead(2)==LOW;if(hit&&!last){count++;Serial.print(\"Objects: \");Serial.println(count);digitalWrite(9,HIGH);delay(80);digitalWrite(9,LOW);}last=hit;}", "boards": "", "libs": ""}, {"title": "RGB Mood Lamp", "cat": "LED", "icon": "🎨", "desc": "Cycle through smooth RGB colors.", "components": ["Arduino Uno", "RGB LED", "3 × 220Ω"], "wiring": ["R→D9 via 220Ω", "G→D10 via 220Ω", "B→D11 via 220Ω", "Common cathode→GND"], "code": "const byte R=9,G=10,B=11;\nvoid setup(){pinMode(R,OUTPUT);pinMode(G,OUTPUT);pinMode(B,OUTPUT);}\nvoid loop(){for(int i=0;i<255;i++){analogWrite(R,i);analogWrite(G,255-i);analogWrite(B,0);delay(8);}for(int i=0;i<255;i++){analogWrite(R,255-i);analogWrite(G,0);analogWrite(B,i);delay(8);}for(int i=0;i<255;i++){analogWrite(R,0);analogWrite(G,i);analogWrite(B,255-i);delay(8);}}", "boards": "", "libs": ""}, {"title": "Emergency Flasher", "cat": "LED", "icon": "🚨", "desc": "Alternate two LEDs like an emergency beacon.", "components": ["Arduino Uno", "2 LEDs", "2 × 220Ω"], "wiring": ["LED A→D8 via 220Ω", "LED B→D9 via 220Ω", "Cathodes→GND"], "code": "void setup(){pinMode(8,OUTPUT);pinMode(9,OUTPUT);}\nvoid loop(){digitalWrite(8,HIGH);digitalWrite(9,LOW);delay(120);digitalWrite(8,LOW);digitalWrite(9,HIGH);delay(120);}", "boards": "", "libs": ""}, {"title": "Automatic Hand Sanitizer", "cat": "Home", "icon": "🧴", "desc": "Use an ultrasonic sensor to run a small pump through a transistor/relay.", "components": ["Arduino Uno", "HC-SR04", "5V pump", "MOSFET/relay", "Diode"], "wiring": ["TRIG→D10", "ECHO→D11", "MOSFET/relay control→D8", "Pump on external supply", "Common GND", "Flyback diode across pump"], "code": "const byte T=10,E=11,P=8;\nvoid setup(){pinMode(T,OUTPUT);pinMode(E,INPUT);pinMode(P,OUTPUT);}\nvoid loop(){digitalWrite(T,LOW);delayMicroseconds(2);digitalWrite(T,HIGH);delayMicroseconds(10);digitalWrite(T,LOW);long u=pulseIn(E,HIGH,30000);long d=u*.0343/2;digitalWrite(P,d>0&&d<12);delay(100);}", "boards": "", "libs": ""}, {"title": "Mini Traffic Crossing", "cat": "LED", "icon": "🚸", "desc": "Vehicle light plus pedestrian button sequence.", "components": ["Arduino Uno", "5 LEDs", "Push button"], "wiring": ["Vehicle red→D8", "Vehicle yellow→D9", "Vehicle green→D10", "Ped red→D11", "Ped green→D12", "Button→D2 and GND"], "code": "void setup(){for(byte p=8;p<=12;p++)pinMode(p,OUTPUT);pinMode(2,INPUT_PULLUP);digitalWrite(10,HIGH);digitalWrite(11,HIGH);}\nvoid loop(){if(digitalRead(2)==LOW){digitalWrite(10,LOW);digitalWrite(9,HIGH);delay(1000);digitalWrite(9,LOW);digitalWrite(8,HIGH);digitalWrite(11,LOW);digitalWrite(12,HIGH);delay(4000);digitalWrite(12,LOW);digitalWrite(11,HIGH);digitalWrite(8,LOW);digitalWrite(10,HIGH);delay(1000);}}", "boards": "", "libs": ""}, {"title": "Temperature Alarm", "cat": "Security", "icon": "🌡️", "desc": "Sound a buzzer when TMP36 temperature is above a limit.", "components": ["Arduino Uno", "TMP36", "Buzzer"], "wiring": ["TMP36 VCC→5V", "GND→GND", "OUT→A0", "Buzzer→D8"], "code": "void setup(){pinMode(8,OUTPUT);Serial.begin(9600);}\nvoid loop(){float v=analogRead(A0)*5.0/1023.0;float c=(v-.5)*100;Serial.println(c);if(c>35)tone(8,2000);else noTone(8);delay(500);}", "boards": "", "libs": ""}, {"title": "Humidity Alarm", "cat": "Security", "icon": "💦", "desc": "Sound a buzzer when DHT11 humidity is high.", "components": ["Arduino Uno", "DHT11", "Buzzer"], "wiring": ["DHT DATA→D2", "VCC→5V", "GND→GND", "Buzzer→D8"], "code": "#include <DHT.h>\nDHT d(2,DHT11);\nvoid setup(){pinMode(8,OUTPUT);d.begin();}\nvoid loop(){float h=d.readHumidity();if(!isnan(h)&&h>75)tone(8,1200);else noTone(8);delay(2000);}", "boards": "DHT sensor library", "libs": ""}, {"title": "Fan with Potentiometer", "cat": "Motor", "icon": "🌀", "desc": "Use a potentiometer to set DC fan speed with a MOSFET.", "components": ["Arduino Uno", "Potentiometer", "DC fan", "MOSFET", "Diode"], "wiring": ["Pot wiper→A0", "MOSFET gate→D9", "Fan uses external supply", "Common GND", "Diode across fan"], "code": "void setup(){pinMode(9,OUTPUT);}\nvoid loop(){analogWrite(9,map(analogRead(A0),0,1023,0,255));delay(10);}", "boards": "", "libs": ""}, {"title": "Relay Timer", "cat": "Home", "icon": "⏲️", "desc": "Turn a relay on for five seconds every cycle.", "components": ["Arduino Uno", "Relay module"], "wiring": ["Relay VCC→5V", "GND→GND", "IN→D7"], "code": "void setup(){pinMode(7,OUTPUT);digitalWrite(7,HIGH);}\nvoid loop(){digitalWrite(7,LOW);delay(5000);digitalWrite(7,HIGH);delay(5000);}", "boards": "", "libs": ""}, {"title": "Button Counter", "cat": "Game", "icon": "🔢", "desc": "Count button presses in the Serial Monitor.", "components": ["Arduino Uno", "Push button"], "wiring": ["Button→D2 and GND"], "code": "unsigned long n=0;bool last=HIGH;\nvoid setup(){pinMode(2,INPUT_PULLUP);Serial.begin(9600);}\nvoid loop(){bool now=digitalRead(2);if(last&&!now){n++;Serial.println(n);delay(180);}last=now;}", "boards": "", "libs": ""}, {"title": "Quiz Buzzer", "cat": "Game", "icon": "❓", "desc": "First button pressed wins and lights an LED.", "components": ["Arduino Uno", "2 push buttons", "2 LEDs", "Buzzer"], "wiring": ["Player A button→D2", "Player B button→D3", "LED A→D8", "LED B→D9", "Buzzer→D10", "Buttons to GND"], "code": "bool locked=false;\nvoid setup(){pinMode(2,INPUT_PULLUP);pinMode(3,INPUT_PULLUP);pinMode(8,OUTPUT);pinMode(9,OUTPUT);pinMode(10,OUTPUT);}\nvoid loop(){if(locked)return;if(digitalRead(2)==LOW){digitalWrite(8,HIGH);tone(10,1200,300);locked=true;}else if(digitalRead(3)==LOW){digitalWrite(9,HIGH);tone(10,800,300);locked=true;}}", "boards": "", "libs": ""}, {"title": "Mini Piano 8 Keys", "cat": "Game", "icon": "🎹", "desc": "Play eight musical notes using eight buttons.", "components": ["Arduino Uno", "8 buttons", "Passive buzzer"], "wiring": ["Buttons→D2-D9 and GND", "Buzzer +→D10", "Buzzer −→GND"], "code": "const byte p[]={2,3,4,5,6,7,8,9};const int n[]={262,294,330,349,392,440,494,523};\nvoid setup(){for(byte x:p)pinMode(x,INPUT_PULLUP);}\nvoid loop(){for(byte i=0;i<8;i++)if(digitalRead(p[i])==LOW){tone(10,n[i]);return;}noTone(10);}", "boards": "", "libs": ""}, {"title": "Servo Joystick Control", "cat": "Motor", "icon": "🕹️", "desc": "Use a joystick X axis to control a servo.", "components": ["Arduino Uno", "Joystick module", "SG90 Servo"], "wiring": ["Joystick VCC→5V", "GND→GND", "X axis→A0", "Servo signal→D9", "Servo power→external 5V"], "code": "#include <Servo.h>\nServo s;\nvoid setup(){s.attach(9);}\nvoid loop(){s.write(map(analogRead(A0),0,1023,0,180));delay(15);}", "boards": "Servo", "libs": ""}, {"title": "Two Servo Arm", "cat": "Robot", "icon": "🦾", "desc": "Control two servos with two potentiometers.", "components": ["Arduino Uno", "2 servos", "2 potentiometers"], "wiring": ["Pot wipers→A0/A1", "Servo 1 signal→D9", "Servo 2 signal→D10", "External servo 5V recommended", "Common GND"], "code": "#include <Servo.h>\nServo a,b;\nvoid setup(){a.attach(9);b.attach(10);}\nvoid loop(){a.write(map(analogRead(A0),0,1023,0,180));b.write(map(analogRead(A1),0,1023,0,180));delay(15);}", "boards": "Servo", "libs": ""}, {"title": "IR Visitor Counter", "cat": "Security", "icon": "🚶", "desc": "Count an object detected by an IR sensor and show it serially.", "components": ["Arduino Uno", "IR sensor"], "wiring": ["VCC→5V", "GND→GND", "OUT→D2"], "code": "unsigned long visitors=0;bool last=HIGH;\nvoid setup(){pinMode(2,INPUT);Serial.begin(9600);}\nvoid loop(){bool hit=digitalRead(2)==LOW;if(hit&&!last){visitors++;Serial.print(\"Visitors: \");Serial.println(visitors);delay(200);}last=hit;}", "boards": "", "libs": ""}, {"title": "Soil Pump Controller", "cat": "Home", "icon": "💧", "desc": "Run a small pump when soil is dry using a MOSFET/relay.", "components": ["Arduino Uno", "Soil sensor", "5V pump", "MOSFET/relay", "Diode"], "wiring": ["Soil AO→A0", "VCC/GND→5V/GND", "Pump control→D8", "Pump on external supply", "Common GND", "Flyback diode"], "code": "void setup(){pinMode(8,OUTPUT);}\nvoid loop(){bool dry=analogRead(A0)>650;digitalWrite(8,dry);delay(300);}", "boards": "", "libs": ""}, {"title": "Parking Distance Display", "cat": "Display", "icon": "📏", "desc": "Show distance in Serial Monitor with simple zones.", "components": ["Arduino Uno", "HC-SR04"], "wiring": ["TRIG→D10", "ECHO→D11", "VCC→5V", "GND→GND"], "code": "void setup(){pinMode(10,OUTPUT);pinMode(11,INPUT);Serial.begin(9600);}\nvoid loop(){digitalWrite(10,LOW);delayMicroseconds(2);digitalWrite(10,HIGH);delayMicroseconds(10);digitalWrite(10,LOW);long u=pulseIn(11,HIGH,30000);float d=u*.0343/2;Serial.print(d);Serial.print(\" cm - \");Serial.println(d<10?\"STOP\":d<30?\"SLOW\":\"SAFE\");delay(250);}", "boards": "", "libs": ""}, {"title": "Multi LED Controller", "cat": "LED", "icon": "💚", "desc": "Control four LEDs with four buttons.", "components": ["Arduino Uno", "4 buttons", "4 LEDs", "4 × 220Ω"], "wiring": ["Buttons→D2-D5 and GND", "LEDs→D8-D11 via 220Ω"], "code": "const byte b[]={2,3,4,5},l[]={8,9,10,11};\nvoid setup(){for(byte i=0;i<4;i++){pinMode(b[i],INPUT_PULLUP);pinMode(l[i],OUTPUT);}}\nvoid loop(){for(byte i=0;i<4;i++)digitalWrite(l[i],digitalRead(b[i])==LOW);}", "boards": "", "libs": ""}, {"title": "Light Beam Alarm", "cat": "Security", "icon": "🔦", "desc": "A light-dependent sensor triggers an alarm when the beam changes.", "components": ["Arduino Uno", "LDR", "Laser/LED light source", "Buzzer"], "wiring": ["LDR divider→A0", "Buzzer→D8", "LDR VCC/GND→5V/GND"], "code": "int baseline=0;\nvoid setup(){pinMode(8,OUTPUT);baseline=analogRead(A0);}\nvoid loop(){int v=analogRead(A0);bool broken=abs(v-baseline)>120;if(broken)tone(8,1800);else noTone(8);delay(50);}", "boards": "", "libs": ""}, {"title": "Mini Home Automation", "cat": "Home", "icon": "🏠", "desc": "Two buttons control two relay outputs.", "components": ["Arduino Uno", "2-channel relay module", "2 buttons"], "wiring": ["Relay IN1→D7", "Relay IN2→D8", "Button1→D2 and GND", "Button2→D3 and GND", "Relay VCC/GND→5V/GND"], "code": "void setup(){pinMode(7,OUTPUT);pinMode(8,OUTPUT);pinMode(2,INPUT_PULLUP);pinMode(3,INPUT_PULLUP);digitalWrite(7,HIGH);digitalWrite(8,HIGH);}\nvoid loop(){digitalWrite(7,digitalRead(2));digitalWrite(8,digitalRead(3));}", "boards": "", "libs": ""}, {"title": "Ultrasonic Buzzer Distance", "cat": "Sensor", "icon": "📢", "desc": "Buzzer pitch rises as an object gets closer.", "components": ["Arduino Uno", "HC-SR04", "Passive buzzer"], "wiring": ["TRIG→D10", "ECHO→D11", "Buzzer→D8", "VCC/GND→5V/GND"], "code": "void setup(){pinMode(10,OUTPUT);pinMode(11,INPUT);}\nvoid loop(){digitalWrite(10,LOW);delayMicroseconds(2);digitalWrite(10,HIGH);delayMicroseconds(10);digitalWrite(10,LOW);long u=pulseIn(11,HIGH,30000);float d=u*.0343/2;if(d>0&&d<100){int f=map((int)d,100,5,300,2200);tone(8,constrain(f,300,2200));}else noTone(8);delay(50);}", "boards": "", "libs": ""}, {"title": "Smart Garage Door", "cat": "Gate", "icon": "🏠", "desc": "Ultrasonic detection opens a servo garage door.", "components": ["Arduino Uno", "HC-SR04", "Servo"], "wiring": ["TRIG→D10", "ECHO→D11", "Servo signal→D9", "Servo power→external 5V", "Common GND"], "code": "#include <Servo.h>\nServo door;\nvoid setup(){pinMode(10,OUTPUT);pinMode(11,INPUT);door.attach(9);door.write(0);}\nvoid loop(){digitalWrite(10,LOW);delayMicroseconds(2);digitalWrite(10,HIGH);delayMicroseconds(10);digitalWrite(10,LOW);long u=pulseIn(11,HIGH,30000);long d=u*.0343/2;if(d>0&&d<25){door.write(100);delay(2000);}else door.write(0);delay(100);}", "boards": "Servo", "libs": ""}, {"title": "Mini Alarm Clock Buzzer", "cat": "Game", "icon": "⏰", "desc": "Use Serial input to start a simple timed buzzer.", "components": ["Arduino Uno", "Passive buzzer"], "wiring": ["Buzzer +→D8", "Buzzer −→GND"], "code": "void setup(){Serial.begin(9600);pinMode(8,OUTPUT);Serial.println(\"Type START\");}\nvoid loop(){if(Serial.available()){String s=Serial.readStringUntil('\\n');s.trim();s.toUpperCase();if(s==\"START\"){for(byte i=0;i<3;i++){tone(8,1200,300);delay(450);}}}}", "boards": "", "libs": ""}, {"title": "Sensor Dashboard Serial", "cat": "Sensor", "icon": "📊", "desc": "Read LDR, potentiometer and ultrasonic values together.", "components": ["Arduino Uno", "LDR", "Potentiometer", "HC-SR04"], "wiring": ["LDR divider→A0", "Pot wiper→A1", "TRIG→D10", "ECHO→D11", "Common GND"], "code": "long cm(){digitalWrite(10,LOW);delayMicroseconds(2);digitalWrite(10,HIGH);delayMicroseconds(10);digitalWrite(10,LOW);long u=pulseIn(11,HIGH,30000);return u?u*.0343/2:999;}\nvoid setup(){Serial.begin(9600);pinMode(10,OUTPUT);pinMode(11,INPUT);}\nvoid loop(){Serial.print(\"LDR=\");Serial.print(analogRead(A0));Serial.print(\" POT=\");Serial.print(analogRead(A1));Serial.print(\" DIST=\");Serial.println(cm());delay(500);}", "boards": "", "libs": ""}, {"title": "Arduino Test Bench", "cat": "Game", "icon": "🧪", "desc": "Test digital pins with a built-in LED pattern.", "components": ["Arduino Uno", "LEDs optional"], "wiring": ["Optional LEDs→D4-D7 via 220Ω", "Cathodes→GND"], "code": "void setup(){for(byte p=4;p<=7;p++)pinMode(p,OUTPUT);}\nvoid loop(){for(byte p=4;p<=7;p++){digitalWrite(p,HIGH);delay(200);digitalWrite(p,LOW);}for(int p=6;p>=4;p--){digitalWrite(p,HIGH);delay(200);digitalWrite(p,LOW);}}", "boards": "", "libs": ""}];
+
+// Additional projects requested for the library.
+P.push(
+  {title:'Ultrasonic LED Bar Graph',cat:'Display',icon:'📶',desc:'Show distance as a 5-level LED bar.',components:['Arduino Uno','HC-SR04','5 LEDs','5 × 220Ω'],wiring:['TRIG → D10','ECHO → D11','LEDs → D3-D7 via 220Ω','All cathodes → GND'],code:'const byte T=10,E=11;const byte leds[]={3,4,5,6,7};\nvoid setup(){pinMode(T,OUTPUT);pinMode(E,INPUT);for(byte p:leds)pinMode(p,OUTPUT);}\nvoid loop(){digitalWrite(T,LOW);delayMicroseconds(2);digitalWrite(T,HIGH);delayMicroseconds(10);digitalWrite(T,LOW);long u=pulseIn(E,HIGH,30000);long d=u?u*.0343/2:999;int n=constrain(map((int)d,5,100,5,0),0,5);for(byte i=0;i<5;i++)digitalWrite(leds[i],i<n);delay(100);}',boards:'Uno, Nano, Mega',libs:''},
+  {title:'Servo Light Switch',cat:'Home',icon:'🔆',desc:'Use an LDR to move a servo when it gets dark.',components:['Arduino Uno','LDR','10kΩ','SG90 Servo'],wiring:['LDR divider midpoint → A0','Servo signal → D9','Servo VCC → external 5V','Common GND'],code:'#include <Servo.h>\nServo s;\nvoid setup(){s.attach(9);}\nvoid loop(){int light=analogRead(A0);s.write(light<450?120:20);delay(300);}',boards:'Uno, Nano, Mega',libs:'Servo'},
+  {title:'Dual PIR Security Lights',cat:'Security',icon:'🔦',desc:'Two PIR sensors control two warning LEDs.',components:['Arduino Uno','2 PIR sensors','2 LEDs','2 × 220Ω'],wiring:['PIR A OUT → D2','PIR B OUT → D3','LED A → D9 via 220Ω','LED B → D10 via 220Ω','Common GND'],code:'void setup(){pinMode(2,INPUT);pinMode(3,INPUT);pinMode(9,OUTPUT);pinMode(10,OUTPUT);}\nvoid loop(){digitalWrite(9,digitalRead(2));digitalWrite(10,digitalRead(3));}',boards:'Uno, Nano, Mega',libs:''},
+  {title:'RGB Button Selector',cat:'LED',icon:'🎛️',desc:'Cycle an RGB LED color with one push button.',components:['Arduino Uno','RGB LED','3 × 220Ω','Push button'],wiring:['R → D9 via 220Ω','G → D10 via 220Ω','B → D11 via 220Ω','Button → D2 and GND','Common cathode → GND'],code:'const byte R=9,G=10,B=11,BTN=2;byte mode=0;bool last=HIGH;\nvoid setup(){pinMode(R,OUTPUT);pinMode(G,OUTPUT);pinMode(B,OUTPUT);pinMode(BTN,INPUT_PULLUP);}\nvoid loop(){bool now=digitalRead(BTN);if(last&&!now){mode=(mode+1)%4;delay(180);}last=now;analogWrite(R,mode==1||mode==3?255:0);analogWrite(G,mode==2||mode==3?255:0);analogWrite(B,mode==0?255:0);}',boards:'Uno, Nano, Mega',libs:''},
+  {title:'Mini Parking Gate Counter',cat:'Gate',icon:'🚘',desc:'Count vehicles passing a gate sensor and print the total.',components:['Arduino Uno','HC-SR04','Servo'],wiring:['TRIG → D10','ECHO → D11','Servo signal → D9','Servo power → external 5V','Common GND'],code:'#include <Servo.h>\nServo gate;unsigned long count=0;bool busy=false;\nvoid setup(){pinMode(10,OUTPUT);pinMode(11,INPUT);gate.attach(9);gate.write(0);Serial.begin(9600);}\nvoid loop(){digitalWrite(10,LOW);delayMicroseconds(2);digitalWrite(10,HIGH);delayMicroseconds(10);digitalWrite(10,LOW);long u=pulseIn(11,HIGH,30000);long d=u*.0343/2;if(d>0&&d<20&&!busy){busy=true;count++;Serial.print("Vehicles: ");Serial.println(count);gate.write(90);delay(1200);gate.write(0);}if(d>=25)busy=false;delay(80);}',boards:'Uno, Nano, Mega',libs:'Servo'}
+);
+
+function boardLabel(){return currentBoard==='Arduino Mega'?'Arduino Mega 2560':currentBoard;}
+function getBoardCode(p){
+  let code=p.code||'';
+  const header=`// TARGET BOARD: ${boardLabel()}\n// This code is selected for the board chosen in the website.\n`;
+  if(currentBoard==='Arduino Mega'){
+    // Mega has hardware Serial1 on pins 19 (RX1) and 18 (TX1), so use it for HC-05/HC-06.
+    if(code.includes('#include <SoftwareSerial.h>')){
+      code=code.replace('#include <SoftwareSerial.h>\nSoftwareSerial BT(10,11);','HardwareSerial &BT = Serial1; // Mega RX1=19, TX1=18');
     }
-  });
-
-  document.getElementById("closeModalBtn2").addEventListener("click", closeModal);
+    // Wire automatically uses the Mega I2C pins (SDA=20, SCL=21); the sketch itself does not need A4/A5.
+    if(/LiquidCrystal_I2C|Adafruit_SSD1306|Wire\.h/.test(code)) code='// Arduino Mega 2560 I2C: SDA=20, SCL=21 (handled by Wire library)\n'+code;
+  }
+  return header+code;
 }
-
-document.getElementById("closeModalBtn").addEventListener("click", closeModal);
-
-projectModal.addEventListener("click", (event) => {
-  if (event.target === projectModal) closeModal();
-});
-
-function closeModal() {
-  projectModal.classList.add("hidden");
-}
-
-/* ---------- Device connection ---------- */
-
-document.getElementById("dashboardConnectBtn").addEventListener("click", () => {
-  activateSection("device");
-  connectArduino();
-});
-
-document.getElementById("connectBtn").addEventListener("click", connectArduino);
-disconnectBtn.addEventListener("click", disconnectArduino);
-
-document.getElementById("sendSerialBtn").addEventListener("click", sendSerial);
-
-document.getElementById("clearSerialBtn").addEventListener("click", () => {
-  serialOutput.textContent = "";
-});
-
-document.getElementById("saveNameBtn").addEventListener("click", saveFriendlyName);
-
-async function connectArduino() {
-  if (!("serial" in navigator)) {
-    showToast("Your browser does not support Web Serial.");
-    return;
-  }
-
-  try {
-    if (port) {
-      await disconnectArduino();
-    }
-
-    /* The browser opens a permission picker here.
-       This is intentionally required by browser security. */
-    port = await navigator.serial.requestPort({
-      filters: [
-        { usbVendorId: 0x2341 }, // Arduino official
-        { usbVendorId: 0x2A03 }, // Arduino / Genuino
-        { usbVendorId: 0x1A86 }, // common CH340 USB-serial
-        { usbVendorId: 0x10C4 }, // common CP210x USB-serial
-        { usbVendorId: 0x0403 }  // common FTDI
-      ]
-    });
-
-    const selectedBaud = Number(baudRate.value);
-    await port.open({ baudRate: selectedBaud });
-
-    const info = port.getInfo ? port.getInfo() : {};
-    const detectedName = getDeviceName(info);
-
-    const saved = localStorage.getItem("anmolArduinoName");
-    const name = saved || detectedName;
-
-    friendlyName.value = name;
-    updateConnectedUI(name, info);
-
-    showToast(`${name} connected successfully ✅`);
-
-    keepReading = true;
-    readLoop();
-
-  } catch (error) {
-    console.error(error);
-
-    if (error.name === "NotFoundError") {
-      showToast("No USB serial device was selected.");
-    } else {
-      showToast("Connection failed: " + error.message);
-    }
-
-    resetConnectionUI();
-  }
-}
-
-async function readLoop() {
-  if (!port || !port.readable) return;
-
-  const decoder = new TextDecoderStream();
-
-  try {
-    const readableStreamClosed = port.readable.pipeTo(decoder.writable);
-    reader = decoder.readable.getReader();
-
-    while (keepReading) {
-      const { value, done } = await reader.read();
-
-      if (done) break;
-
-      if (value) {
-        serialOutput.textContent += value;
-        serialOutput.scrollTop = serialOutput.scrollHeight;
-      }
-    }
-
-    try {
-      reader.releaseLock();
-    } catch {}
-    reader = null;
-
-    await readableStreamClosed.catch(() => {});
-  } catch (error) {
-    console.error("Serial read error:", error);
-  }
-}
-
-async function sendSerial() {
-  if (!port || !port.writable) {
-    showToast("Connect Arduino first.");
-    return;
-  }
-
-  const message = serialInput.value;
-
-  if (!message.trim()) {
-    showToast("Type something first.");
-    return;
-  }
-
-  try {
-    const encoder = new TextEncoder();
-    writer = port.writable.getWriter();
-
-    await writer.write(encoder.encode(message + "\n"));
-
-    writer.releaseLock();
-    writer = null;
-
-    serialInput.value = "";
-  } catch (error) {
-    console.error(error);
-    showToast("Could not send to Arduino.");
-    try {
-      writer?.releaseLock();
-    } catch {}
-    writer = null;
-  }
-}
-
-async function disconnectArduino() {
-  keepReading = false;
-
-  try {
-    if (reader) {
-      await reader.cancel();
-      reader.releaseLock();
-    }
-  } catch {}
-
-  reader = null;
-
-  try {
-    if (writer) writer.releaseLock();
-  } catch {}
-
-  writer = null;
-
-  if (port) {
-    try {
-      await port.close();
-    } catch (error) {
-      console.warn("Port close:", error);
+function getBoardWiring(p){
+  let lines=[...(p.wiring||[])];
+  if(currentBoard==='Arduino Mega'){
+    lines=lines.map(x=>x.replace(/SDA\s*→\s*A4/gi,'SDA → D20 (SDA)').replace(/SCL\s*→\s*A5/gi,'SCL → D21 (SCL)').replace(/A4\b/gi,'D20 (SDA)').replace(/A5\b/gi,'D21 (SCL)'));
+    if(/SoftwareSerial|HC-05|HC-06/i.test((p.code||'')+' '+lines.join(' '))){
+      lines=lines.map(x=>x.replace(/TX\s*→\s*D10\s*\(SoftwareSerial RX\)/i,'TX → D19 (Mega RX1)').replace(/RX\s*←\s*D11[^,]*/i,'RX ← D18 (Mega TX1) through level divider').replace(/TX\s*→\s*D10/i,'TX → D19 (Mega RX1)').replace(/RX\s*←\s*D11/i,'RX ← D18 (Mega TX1) through level divider'));
     }
   }
-
-  port = null;
-  resetConnectionUI();
-  showToast("Arduino disconnected.");
+  return lines;
 }
-
-function updateConnectedUI(name, info) {
-  deviceName.textContent = name || "Arduino connected";
-
-  const vendor = info.usbVendorId ? "0x" + info.usbVendorId.toString(16).toUpperCase() : "Unknown";
-  const product = info.usbProductId ? "0x" + info.usbProductId.toString(16).toUpperCase() : "Unknown";
-
-  deviceDetails.textContent =
-    `USB serial device • Vendor ${vendor} • Product ${product} • ${baudRate.value} baud`;
-
-  deviceBadge.textContent = "CONNECTED";
-  deviceBadge.className = "device-badge connected";
-
-  topStatus.innerHTML = `<span class="status-dot connected"></span> Connected`;
-
-  connectionState.textContent = "ON";
-  deviceCount.textContent = "1";
-
-  disconnectBtn.disabled = false;
-  sendSerialBtn.disabled = false;
-}
-
-function resetConnectionUI() {
-  deviceName.textContent = "No Arduino connected";
-  deviceDetails.textContent = "Click the button to choose a serial USB device.";
-
-  deviceBadge.textContent = "DISCONNECTED";
-  deviceBadge.className = "device-badge disconnected";
-
-  topStatus.innerHTML = `<span class="status-dot"></span> Not connected`;
-
-  connectionState.textContent = "OFF";
-  deviceCount.textContent = "0";
-
-  disconnectBtn.disabled = true;
-  sendSerialBtn.disabled = true;
-}
-
-function saveFriendlyName() {
-  const name = friendlyName.value.trim();
-
-  if (!name) {
-    showToast("Enter a device name first.");
-    return;
-  }
-
-  localStorage.setItem("anmolArduinoName", name);
-
-  if (port) {
-    deviceName.textContent = name;
-  }
-
-  showToast("Device name saved.");
-}
-
-function getDeviceName(info) {
-  const vid = info.usbVendorId;
-  const pid = info.usbProductId;
-
-  if (vid === 0x2341) return "Arduino Uno";
-  if (vid === 0x2A03) return "Arduino / Genuino";
-  if (vid === 0x1A86) return "CH340 USB Serial";
-  if (vid === 0x10C4) return "CP210x USB Serial";
-  if (vid === 0x0403) return "FTDI USB Serial";
-
-  if (pid) return `USB Serial Device`;
-  return "Serial Device";
-}
-
-/* Web Serial events for devices that are physically connected/disconnected.
-   Permission is still required before a website can use a port. */
-
-if ("serial" in navigator) {
-  navigator.serial.addEventListener("connect", (event) => {
-    showToast("A supported serial USB device was plugged in.");
-  });
-
-  navigator.serial.addEventListener("disconnect", (event) => {
-    if (port === event.target) {
-      keepReading = false;
-      port = null;
-      resetConnectionUI();
-      showToast("Arduino USB device disconnected.");
-    }
-  });
-}
-
-/* ---------- Helpers ---------- */
-
-function classify(name) {
-  const n = name.toLowerCase();
-
-  if (/(gate|door|window|servo|barrier|lock|curtain)/.test(n)) return "Gate";
-  if (/(led|light|traffic|flasher|rgb)/.test(n)) return "LED";
-  if (/(robot|motor|car|pump|fan|conveyor)/.test(n)) return "Motor";
-  if (/(lcd|oled|display|clock|counter|timer)/.test(n)) return "Display";
-  if (/(security|alarm|password|rfid|fire|gas|smoke)/.test(n)) return "Security";
-  return "Sensor";
-}
-
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-let toastTimer;
-
-function showToast(message) {
-  clearTimeout(toastTimer);
-
-  toast.textContent = message;
-  toast.classList.add("show");
-
-  toastTimer = setTimeout(() => {
-    toast.classList.remove("show");
-  }, 3500);
-}
-
-/* Save a more useful default device name when none exists. */
-if (localStorage.getItem("anmolArduinoName")) {
-  friendlyName.value = localStorage.getItem("anmolArduinoName");
-}
+let currentProject=null;
+let codeNow='';let currentBoard=localStorage.getItem('anmolBoard')||'Arduino Uno';const intro=document.getElementById('intro'),app=document.getElementById('app');function enter(n){localStorage.setItem('anmolName',n);document.getElementById('welcome').textContent=n;document.getElementById('sideName').textContent=n.toUpperCase();intro.classList.add('hidden');app.classList.remove('hidden')}const old=localStorage.getItem('anmolName');if(old)enter(old);const ni=document.getElementById('nameInput');ni.oninput=e=>{const ok=!!e.target.value.trim();document.getElementById('continue').disabled=!ok;document.getElementById('continue').classList.toggle('active',ok)};document.getElementById('continue').onclick=()=>enter(ni.value.trim());const board=document.getElementById('board');board.value=currentBoard;board.onchange=()=>{currentBoard=board.value;localStorage.setItem('anmolBoard',currentBoard);toast(currentBoard+' selected');if(currentProject){openProject(P.indexOf(currentProject));}};const grid=document.getElementById('grid'),search=document.getElementById('search'),cat=document.getElementById('cat');function render(){let q=search.value.toLowerCase(),c=cat.value;let list=P.filter(x=>(c==='All'||x.cat===c)&&(x.title.toLowerCase().includes(q)||x.desc.toLowerCase().includes(q)||x.components.join(' ').toLowerCase().includes(q)));document.getElementById('count').textContent=list.length+' projects';grid.innerHTML=list.map((p,i)=>`<article class="card"><div class="pic">${p.icon}</div><div class="body">${i<4?'<span class="badge">FEATURED</span>':''}<h4>${p.title}</h4><p>${p.desc}</p><b style="font-size:11px">🧰 Components</b><div class="chips">${p.components.slice(0,5).map(x=>`<span class="chip">${x}</span>`).join('')}</div><div class="actions"><button class="small" onclick="openProject(${P.indexOf(p)})">📄 Code</button><button class="small" onclick="openProject(${P.indexOf(p)})">🔌 Wiring</button><button class="small primary" onclick="openProject(${P.indexOf(p)})">View →</button></div></div></article>`).join('')||'<div class="detail" style="grid-column:1/-1">No project found.</div>'}search.oninput=render;cat.onchange=render;document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');cat.value=b.dataset.cat;render()});function openProject(i){let p=P[i];currentProject=p;document.getElementById('mbadge').textContent=p.cat;document.getElementById('mtitle').textContent=p.title;document.getElementById('mdesc').textContent=p.desc;document.getElementById('mboard').textContent='Code target: '+boardLabel()+'  •  Compatible: '+(p.boards||'Standard Arduino sketch');document.getElementById('mcomp').innerHTML=p.components.map(x=>`<span class="chip" style="display:inline-block;margin:3px">${x}</span>`).join('');document.getElementById('mlib').textContent=p.libs||'No extra library required. Install only the hardware library listed by the project if shown.';document.getElementById('mwire').innerHTML=getBoardWiring(p).map(x=>`<div class="wire">🔗 ${x}</div>`).join('');codeNow=getBoardCode(p);document.getElementById('mcode').textContent=codeNow;drawDiagram({...p,wiring:getBoardWiring(p)});document.getElementById('modal').classList.remove('hidden')}function closeModal(){document.getElementById('modal').classList.add('hidden')}document.getElementById('modal').onclick=e=>{if(e.target.id==='modal')closeModal()};function copyCode(){navigator.clipboard?.writeText(codeNow);toast('Code copied!')}function toast(s){let t=document.getElementById('toast');t.textContent=s;t.classList.remove('hidden');setTimeout(()=>t.classList.add('hidden'),2200)}function esc(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}function drawDiagram(p){
+ const svg=document.getElementById('diagram');
+ const W=1000,H=560;
+ const comps=p.components.filter(x=>!/^Arduino/i.test(x));
+ const lines=p.wiring||[];
+ const colors={power:'#ff5252',ground:'#9e9e9e',digital:'#00e676',analog:'#40c4ff',signal:'#ffd740'};
+ const pinType=(s)=>{s=s.toUpperCase();if(/5V|VIN|VCC/.test(s))return 'power';if(/GND|GROUND|CATHODE/.test(s))return 'ground';if(/A\d/.test(s))return 'analog';if(/D\d|TRIG|ECHO|OUT|SIGNAL|IN/.test(s))return 'digital';return 'signal'};
+ const esc2=esc;
+ const compX=735, compW=225, boardX=350, boardY=95, boardW=300, boardH=350;
+ const boardPins={};
+ const pinNames=['D13','D12','D11','D10','D9','D8','D7','D6','D5','D4','D3','D2','D1','D0','A0','A1','A2','A3','A4','A5','5V','3V3','GND'];
+ pinNames.forEach((pin,i)=>boardPins[pin]={x:boardX+(i%2?boardW:0),y:120+Math.floor(i/2)*25,side:i%2?'right':'left'});
+ function pinPos(token,idx){
+   let m=String(token).toUpperCase().match(/(?:D)?(\d{1,2})\b/);
+   if(/^A[0-5]$/.test(String(token).toUpperCase()))return {x:boardX,y:390+(+token.slice(1))*8,lab:token.toUpperCase()};
+   if(/^5V$|^3V3$|^VIN$/.test(String(token).toUpperCase()))return {x:boardX+boardW,y:390+idx*12,lab:String(token).toUpperCase()};
+   if(/^GND$/.test(String(token).toUpperCase()))return {x:boardX,y:405+idx*12,lab:'GND'};
+   if(m){let n=+m[1]; if(n>=0&&n<=13){let y=120+(13-n)*25;return {x: n%2?boardX+boardW:boardX,y,lab:'D'+n};}}
+   return {x:boardX+boardW,y:410+idx*10,lab:String(token)};
+ }
+ let out=`<defs><filter id="glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;
+ out+=`<rect x="0" y="0" width="${W}" height="${H}" rx="12" fill="#020b08"/>`;
+ out+=`<text x="28" y="34" fill="#00e676" font-size="18" font-weight="800">REAL WIRING • ${esc2(currentBoard)}</text>`;
+ out+=`<text x="28" y="55" fill="#78968a" font-size="11">Pin-accurate from this project's wiring list • diagram is not to scale</text>`;
+ // Arduino board
+ out+=`<rect x="${boardX}" y="${boardY}" width="${boardW}" height="${boardH}" rx="22" fill="#07552f" stroke="#00e676" stroke-width="2"/>`;
+ out+=`<rect x="${boardX+22}" y="${boardY+32}" width="${boardW-44}" height="90" rx="10" fill="#0a6b3c" stroke="#39ff9a" opacity=".8"/>`;
+ out+=`<text x="${boardX+boardW/2}" y="${boardY+70}" text-anchor="middle" fill="#eafff4" font-size="25" font-weight="900">ARDUINO</text>`;
+ out+=`<text x="${boardX+boardW/2}" y="${boardY+94}" text-anchor="middle" fill="#baf5d5" font-size="16">${esc2(currentBoard)}</text>`;
+ out+=`<circle cx="${boardX+35}" cy="${boardY+150}" r="12" fill="#00e676"/><text x="${boardX+55}" y="${boardY+155}" fill="#dfffee" font-size="12">USB / POWER</text>`;
+ // component cards
+ const cardH=Math.max(42,Math.min(72,(H-115)/Math.max(1,comps.length)));
+ const compY={};
+ comps.forEach((c,i)=>{const y=82+i*cardH;compY[c]=y+cardH/2;out+=`<rect x="${compX}" y="${y}" width="${compW}" height="${cardH-8}" rx="10" fill="#09291d" stroke="#08734a"/>`;out+=`<circle cx="${compX+18}" cy="${y+20}" r="6" fill="#00e676"/>`;out+=`<text x="${compX+32}" y="${y+24}" fill="#eafff4" font-size="12" font-weight="700">${esc2(c)}</text>`;});
+ // power/ground rails
+ out+=`<rect x="28" y="105" width="235" height="92" rx="12" fill="#071c13" stroke="#b52a3a"/><text x="42" y="129" fill="#ff6b78" font-size="12" font-weight="800">POWER RAIL</text><text x="42" y="151" fill="#b8d2c7" font-size="11">5V / 3.3V / VCC connections</text><text x="42" y="172" fill="#ff9da7" font-size="10">Use external supply for motors/servos when required.</text>`;
+ out+=`<rect x="28" y="215" width="235" height="72" rx="12" fill="#071c13" stroke="#777"/><text x="42" y="240" fill="#ddd" font-size="12" font-weight="800">GROUND RAIL</text><text x="42" y="262" fill="#b8d2c7" font-size="11">All GND lines share Arduino GND.</text>`;
+ // wiring lines: source -> destination; keep each exact instruction visible
+ lines.forEach((line,i)=>{
+   const parts=line.split('→');
+   const src=(parts[0]||line).trim();
+   const dst=(parts.slice(1).join('→')||'').trim();
+   const type=pinType(dst+' '+src), color=colors[type]||colors.signal;
+   let sourceComp=comps.find(c=>src.toLowerCase().includes(c.toLowerCase().split(' ')[0])) || comps.find(c=>src.toLowerCase().includes(c.toLowerCase()));
+   const sy=sourceComp?compY[sourceComp]:110+(i%10)*40;
+   let targetToken=(dst.match(/D\d+|A\d|5V|3V3|GND|VIN/i)||[])[0]||dst;
+   let tp=pinPos(targetToken,i);
+   let sx=sourceComp?compX:30, ex=tp.x;
+   if(!sourceComp){sx=270;}
+   const path=`M ${sx} ${sy} C ${(sx+ex)/2} ${sy}, ${(sx+ex)/2} ${tp.y}, ${ex} ${tp.y}`;
+   out+=`<path d="${path}" fill="none" stroke="${color}" stroke-width="2.4" opacity=".9" filter="url(#glow)"/>`;
+   out+=`<circle cx="${ex}" cy="${tp.y}" r="4" fill="${color}"/>`;
+   const labelX=(sx+ex)/2, labelY=(sy+tp.y)/2-4;
+   out+=`<rect x="${labelX-68}" y="${labelY-10}" width="136" height="18" rx="6" fill="#020b08" stroke="${color}" opacity=".96"/><text x="${labelX}" y="${labelY+3}" text-anchor="middle" fill="#eafff4" font-size="9">${esc2(line)}</text>`;
+ });
+ // pin labels on board
+ ['D13','D12','D11','D10','D9','D8','D7','D6','D5','D4','D3','D2'].forEach((pin,i)=>{let y=120+i*25;out+=`<text x="${boardX-10}" y="${y+4}" text-anchor="end" fill="#b8d2c7" font-size="9">${pin}</text>`;out+=`<text x="${boardX+boardW+10}" y="${y+4}" fill="#b8d2c7" font-size="9">${pin}</text>`});
+ // legend
+ const leg=[['#ff5252','POWER'],['#9e9e9e','GND'],['#00e676','DIGITAL'],['#40c4ff','ANALOG'],['#ffd740','SIGNAL']];
+ leg.forEach((l,i)=>{const x=28+i*120;out+=`<line x1="${x}" y1="520" x2="${x+20}" y2="520" stroke="${l[0]}" stroke-width="4"/><text x="${x+27}" y="524" fill="#9fb8ad" font-size="9">${l[1]}</text>`});
+ out+='</svg>';svg.innerHTML=out;
+}document.getElementById('popular').innerHTML=P.slice(0,8).map((p,i)=>`<button onclick="openProject(${i})">${p.icon} ${p.title} ›</button>`).join('');const aboutNav=document.getElementById('aboutNav'),aboutSection=document.getElementById('aboutSection'),gridEl=document.getElementById('grid');
+aboutNav.onclick=()=>{document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));aboutNav.classList.add('active');aboutSection.classList.remove('hidden');gridEl.classList.add('hidden');aboutSection.scrollIntoView({behavior:'smooth'});};
+search.oninput=()=>{aboutSection.classList.add('hidden');gridEl.classList.remove('hidden');render()};
+cat.onchange=()=>{aboutSection.classList.add('hidden');gridEl.classList.remove('hidden');render()};
+render();
